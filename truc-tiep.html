@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giám sát trực tiếp – Urban Sound</title>
+  <meta name="description" content="Nghe liên tục qua micro, cảnh báo khi có âm thanh nguy hiểm hoặc tiếng ồn vượt ngưỡng.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Giám sát trực tiếp – Urban Sound">
+  <meta property="og:description" content="Nghe liên tục qua micro, cảnh báo khi có âm thanh nguy hiểm hoặc tiếng ồn vượt ngưỡng.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-live">
+  <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
+  <header id="site-header"></header>
+  <main id="main">
+    <section class="page-head container">
+      <span class="eyebrow">Giám sát trực tiếp</span>
+      <h1>Nghe liên tục, báo ngay khi cần</h1>
+      <p>Bật micro, Urban Sound nghe liên tục và cảnh báo khi có âm thanh nguy hiểm hoặc tiếng ồn vượt mức an toàn. Camera là tùy chọn.</p>
+      <div id="tool-tabs"></div>
+    </section>
+
+    <div class="container tool">
+      <div class="tool-main">
+        <div id="quick-guide" data-anchor="#truc-tiep" data-steps='[["Bấm “Bắt đầu nghe”", "Cho phép micro khi trình duyệt hỏi. Đèn xanh = đang nghe."], ["Chọn độ nhạy & âm cần báo", "Ở cột bên phải: Thấp ít báo nhầm, Cao bắt cả tiếng nhỏ."], ["Theo dõi", "Tên âm thanh, độ ồn (dB) và cảnh báo hiện ngay. Nhật ký lưu mọi sự kiện."]]'></div>
+        <section class="stage" id="stage" data-tone="gray">
+          <video id="cam-video" playsinline muted hidden></video>
+          <div class="stage-top">
+            <div class="row" style="gap:8px">
+              <span class="pill off" id="pill-mic"><span class="led"></span><span>Micro: tắt</span></span>
+              <span class="pill off" id="pill-cam"><span class="led"></span><span>Camera: tắt</span></span>
+            </div>
+            <span class="pill" id="pill-db"><span data-icon="vol1" data-size="15"></span><span class="mono" id="pill-db-v">-- dB</span></span>
+          </div>
+          <div class="stage-center">
+            <div id="live-visual" class="result-visual"><span class="ripple"></span><span class="ripple"></span><div class="big"><span data-icon="ear" data-size="52"></span></div></div>
+            <div class="live-label" id="live-label">Sẵn sàng nghe</div>
+            <div class="live-sub" id="live-sub">Bấm “Bắt đầu nghe” và cho phép trình duyệt dùng micro.</div>
+          </div>
+          <canvas class="spec" id="spec"></canvas>
+        </section>
+
+        <div class="controls card">
+          <div class="ctl-wrap"><button class="ctl" id="btn-mic" type="button" aria-label="Bật/tắt micro" title="Bật/tắt micro (M)" disabled><span class="speaking" id="speaking"></span><span data-icon="mic" data-size="22"></span></button><span class="ctl-label">Micro</span></div>
+          <div class="ctl-wrap"><button class="ctl" id="btn-cam" type="button" aria-label="Bật/tắt camera" title="Bật/tắt camera (C)"><span data-icon="camOff" data-size="22"></span></button><span class="ctl-label">Camera</span></div>
+          <div class="ctl-wrap"><button class="ctl big active" id="btn-start" type="button"><span data-icon="play" data-size="20"></span><span>Bắt đầu nghe</span></button><span class="ctl-label">&nbsp;</span></div>
+          <div class="ctl-wrap"><button class="ctl" id="btn-cc" type="button" aria-label="Phụ đề trực tiếp" title="Phụ đề trực tiếp"><span data-icon="text" data-size="22"></span></button><span class="ctl-label">Phụ đề</span></div>
+          <div class="ctl-wrap"><button class="ctl" id="btn-clip" type="button" aria-label="Quay hiện trường" title="Quay đoạn video hiện trường (cần bật camera)" disabled><span data-icon="record" data-size="22"></span></button><span class="ctl-label" id="clip-label">Quay</span></div>
+        </div>
+
+        <section class="card card-pad" id="do-on-truc-tiep">
+          <div class="row" style="justify-content:space-between;margin-bottom:14px">
+            <h3 style="margin:0;font-size:1.05rem" class="row"><span data-icon="gauge"></span> Độ ồn trực tiếp</h3>
+            <a class="link" href="do-on.html" style="font-size:.88rem">Máy đo toàn màn hình <span data-icon="arrow" data-size="15"></span></a>
+          </div>
+          <div class="live-meter">
+            <div><span class="lm-num mono" id="lm-num">--</span> <span class="lm-unit">dB</span><div style="margin-top:6px"><span class="badge" id="lm-band">Chưa đo</span></div></div>
+            <div><div id="lm-meter"></div><div class="stat-row" style="margin-top:14px"><div class="stat"><small>Thấp nhất</small><b id="lm-min">--</b></div><div class="stat"><small>Trung bình</small><b id="lm-avg">--</b></div><div class="stat"><small>Cao nhất</small><b id="lm-max">--</b></div></div></div>
+          </div>
+          <div class="lm-chart"><canvas id="lm-chart"></canvas></div>
+          <p class="muted" id="lm-like" style="font-size:.88rem;margin:8px 0 0"></p>
+        </section>
+
+        <div id="live-health"></div>
+
+        <section class="card" id="cc-card" hidden>
+          <div class="card-title"><h3 class="row" style="gap:8px"><span data-icon="text"></span> Phụ đề trực tiếp</h3>
+            <select class="select" id="cc-lang" style="height:34px"><option value="vi-VN">Tiếng Việt</option><option value="en-US">English</option></select></div>
+          <div class="captions" id="captions"><span class="muted">Hãy nói gì đó…</span></div>
+          <p class="muted" style="font-size:.8rem;padding:0 16px 14px;margin:0">Phụ đề dùng nhận dạng giọng nói có sẵn của trình duyệt (Chrome/Edge/Safari) và có thể gửi âm thanh tới máy chủ của nhà cung cấp trình duyệt.</p>
+        </section>
+      </div>
+
+      <aside class="tool-side">
+        <section class="card card-pad">
+          <h3 style="font-size:1rem">Độ nhạy</h3>
+          <div class="sens" id="sens">
+            <button type="button" data-v="low"><b>Thấp</b><small>Ít báo nhầm</small></button>
+            <button type="button" data-v="medium" class="on"><b>Trung bình</b><small>Khuyên dùng</small></button>
+            <button type="button" data-v="high"><b>Cao</b><small>Bắt tiếng nhỏ</small></button>
+          </div>
+          <h3 style="font-size:1rem;margin-top:20px">Cảnh báo khi nghe thấy</h3>
+          <div class="chips" id="watch"></div>
+          <h3 style="font-size:1rem;margin-top:20px">Cảnh báo tiếng ồn khi vượt</h3>
+          <div class="sens" id="noise-limit">
+            <button type="button" data-v="55"><b>55 dB</b><small>Phòng ngủ</small></button>
+            <button type="button" data-v="70"><b>70 dB</b><small>Văn phòng</small></button>
+            <button type="button" data-v="85" class="on"><b>85 dB</b><small>An toàn tai</small></button>
+          </div>
+          <div class="options" style="margin-top:16px">
+            <label class="switch"><input type="checkbox" id="opt-sound" checked> Âm báo & rung</label>
+            <label class="switch"><input type="checkbox" id="opt-save" checked> Lưu vào lịch sử</label>
+          </div>
+          <details class="tech" style="margin-top:16px">
+            <summary><span data-icon="settings" data-size="18"></span>Cài đặt nâng cao</summary>
+            <div class="tech-body" style="display:grid;gap:14px">
+              <label class="field">Micro <select class="select" id="mic-select"><option value="">Mặc định</option></select></label>
+              <label class="switch"><input type="checkbox" id="opt-denoise" checked> Lọc tạp âm nền (máy lạnh, quạt…)</label>
+              <label class="field">Hiệu chỉnh độ ồn: <span class="mono" id="cal-v"></span>
+                <input type="range" id="cal" min="70" max="120" step="1"></label>
+              <small class="muted">Nếu có máy đo chuẩn hoặc app đo dB tin cậy, chỉnh thanh này cho số đo khớp. Mặc định phù hợp đa số điện thoại/laptop.</small>
+              <label class="field">Thời gian chờ giữa hai lần báo cùng loại: <span class="mono" id="cd-v">4 giây</span>
+                <input type="range" id="cooldown" min="2" max="30" step="1" value="4"></label>
+            </div>
+          </details>
+        </section>
+
+        <section class="card">
+          <div class="card-title"><h3>Nhật ký sự kiện</h3>
+            <div class="row" style="gap:4px"><button class="btn btn-ghost btn-sm" id="log-csv" type="button" title="Xuất CSV"><span data-icon="download" data-size="16"></span>CSV</button><button class="btn btn-ghost btn-sm" id="log-clear" type="button" title="Xóa nhật ký"><span data-icon="trash" data-size="16"></span></button></div></div>
+          <ul class="log" id="log"><li class="empty" style="display:block;background:none">Chưa có sự kiện nào.</li></ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script type="module" src="assets/js/pages/live.js"></script>
+</body>
+</html>

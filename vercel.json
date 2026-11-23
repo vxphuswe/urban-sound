@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Permissions-Policy", "value": "microphone=(self), camera=(self)" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/models/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }]
+    }
+  ],
+  "redirects": [
+    { "source": "/nhan-dien", "destination": "/nhan-dien.html" },
+    { "source": "/truc-tiep", "destination": "/truc-tiep.html" },
+    { "source": "/do-on", "destination": "/do-on.html" },
+    { "source": "/huong-dan", "destination": "/huong-dan.html" },
+    { "source": "/dang-nhap", "destination": "/dang-nhap.html" },
+    { "source": "/live", "destination": "/truc-tiep.html" }
+  ]
+}

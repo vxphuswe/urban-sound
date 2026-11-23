@@ -1,0 +1,23 @@
+# Hệ thống
+.DS_Store
+Thumbs.db
+node_modules/
+.vercel/
+.env
+.env.*
+
+# Python / train
+__pycache__/
+*.pyc
+.venv/
+venv/
+training/data/
+*.npz
+
+# Mô hình & dữ liệu nặng của bản cũ
+legacy/best_model.pth
+legacy/app.db
+legacy/.secret_key
+legacy/features.npz
+legacy/data/
+*.pth

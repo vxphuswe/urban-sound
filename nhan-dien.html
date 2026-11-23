@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhận diện âm thanh – Urban Sound</title>
+  <meta name="description" content="Tải file âm thanh, video hoặc ghi âm để biết đây là tiếng gì, mức ồn bao nhiêu và chuyển lời nói thành văn bản.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Nhận diện âm thanh – Urban Sound">
+  <meta property="og:description" content="Tải file âm thanh, video hoặc ghi âm để biết đây là tiếng gì, mức ồn bao nhiêu và chuyển lời nói thành văn bản.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-detect">
+  <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
+  <header id="site-header"></header>
+  <main id="main">
+    <section class="page-head container">
+      <span class="eyebrow">Nhận diện âm thanh <span class="sep">/</span> Phiên âm</span>
+      <h1>Đây là tiếng gì?</h1>
+      <p>Tải lên file âm thanh, video hoặc ghi âm trực tiếp. Urban Sound cho bạn biết đó là tiếng gì, ồn cỡ nào và lời nói trong đó.</p>
+      <div id="tool-tabs"></div>
+    </section>
+
+    <div class="container tool">
+      <div class="tool-main">
+        <div id="quick-guide" data-anchor="#nhan-dien" data-steps='[["Chọn file hoặc bấm Ghi âm", "MP3, M4A, WAV, MP4… hoặc ghi 3–10 giây bằng micro."], ["Chờ vài giây", "Web lọc tạp âm rồi nhận diện. Lần đầu tải mô hình ~15 MB."], ["Xem kết quả", "Tên âm thanh, độ tin cậy, mức ồn, cảnh báo và lời nói."]]'></div>
+        <div class="notice reveal" id="what-notice">
+          <span data-icon="info"></span>
+          <div><b>Nhận diện được hơn 40 nhóm âm thanh</b> (521 loại chi tiết): <span id="notice-list">chó, mèo, chim, gà vịt, trẻ em, em bé khóc, tiếng nói, âm nhạc, xe máy, còi xe, còi hú, súng/nổ, pháo, chuông báo cháy, kính vỡ, công trường, máy lạnh, mưa, gió…</span>
+            <a class="link" href="huong-dan.html#danh-sach">Xem đầy đủ</a></div>
+        </div>
+
+        <section class="card card-pad" aria-labelledby="input-title">
+          <div class="row" style="justify-content:space-between;margin-bottom:18px">
+            <h2 id="input-title" style="font-size:1.15rem;margin:0">Chọn cách nhập âm thanh</h2>
+            <div class="seg" role="tablist" aria-label="Cách nhập">
+              <button role="tab" aria-selected="true" aria-controls="panel-file" id="tab-file"><span data-icon="upload"></span>Tải file</button>
+              <button role="tab" aria-selected="false" aria-controls="panel-rec" id="tab-rec"><span data-icon="mic"></span>Ghi âm</button>
+            </div>
+          </div>
+
+          <div id="panel-file" role="tabpanel" aria-labelledby="tab-file">
+            <label class="dropzone" id="dropzone">
+              <input type="file" id="file-input" hidden>
+              <span class="big-ic"><span data-icon="upload" data-size="30"></span></span>
+              <h3>Kéo thả file vào đây hoặc bấm để chọn</h3>
+              <p>Âm thanh hoặc video từ điện thoại, máy tính – tối đa 5 phút đầu được phân tích.</p>
+              <div class="formats"><span>MP3</span><span>M4A</span><span>WAV</span><span>OGG</span><span>AAC</span><span>FLAC</span><span>MP4</span><span>MOV</span><span>WEBM</span></div>
+            </label>
+          </div>
+
+          <div id="panel-rec" role="tabpanel" aria-labelledby="tab-rec" hidden>
+            <div class="recorder">
+              <button class="rec-btn" id="rec-btn" type="button" aria-label="Bắt đầu ghi âm"><span class="ring"></span><span class="ring"></span><span data-icon="mic" data-size="40"></span></button>
+              <div class="rec-time" id="rec-time">00:00</div>
+              <div class="eq" id="rec-eq" aria-hidden="true"></div>
+              <p class="muted" id="rec-hint" style="margin:0">Bấm nút để ghi âm (tối đa 60 giây). Bấm lần nữa để dừng và nhận diện.</p>
+            </div>
+          </div>
+
+          <div class="options" style="margin-top:18px">
+            <label class="switch"><input type="checkbox" id="opt-denoise" checked> Lọc tạp âm nền</label>
+            <label class="switch"><input type="checkbox" id="opt-asr" checked> Tự phiên âm khi có lời nói</label>
+            <span class="spacer"></span>
+            <label class="row" style="gap:8px">Độ nhạy
+              <select class="select" id="opt-sens">
+                <option value="low">Thấp – ít báo nhầm</option>
+                <option value="medium" selected>Trung bình</option>
+                <option value="high">Cao – bắt cả tiếng nhỏ</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section id="status" class="card" hidden>
+          <div class="loading-box">
+            <div class="spin"></div>
+            <b id="status-text">Đang chuẩn bị…</b>
+            <div class="progress"><i id="status-bar"></i></div>
+            <small class="muted" id="status-hint">Lần đầu cần tải mô hình (~15 MB). Những lần sau sẽ nhanh hơn nhiều.</small>
+          </div>
+        </section>
+
+        <div id="result"></div>
+
+        <section class="card card-pad" id="media-card" hidden>
+          <div class="row" style="justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.05rem" class="row"><span data-icon="wave"></span> <span id="media-name">Âm thanh</span></h3>
+            <span class="badge" id="media-dur"></span>
+          </div>
+          <div id="player-slot"></div>
+          <div class="wave-box" style="margin-top:12px"><canvas id="wave"></canvas><div class="playhead" id="playhead"></div></div>
+          <div class="tl" id="timeline" aria-label="Dòng thời gian các âm thanh"></div>
+          <div class="tl-list" id="tl-list"></div>
+        </section>
+
+        <section class="card" id="phien-am">
+          <div class="card-title">
+            <h3 class="row" style="gap:8px"><span data-icon="text"></span> Phiên âm lời nói thành văn bản</h3>
+            <div class="row" style="gap:8px">
+              <button class="btn btn-ghost btn-sm" id="tr-copy" type="button" disabled><span data-icon="copy" data-size="16"></span>Sao chép</button>
+              <button class="btn btn-ghost btn-sm" id="tr-txt" type="button" disabled><span data-icon="download" data-size="16"></span>.txt</button>
+              <button class="btn btn-ghost btn-sm" id="tr-srt" type="button" disabled><span data-icon="download" data-size="16"></span>.srt</button>
+            </div>
+          </div>
+          <div class="card-pad" style="display:grid;gap:14px">
+            <div class="options">
+              <label class="row" style="gap:8px">Ngôn ngữ
+                <select class="select" id="tr-lang">
+                  <option value="vietnamese" selected>Tiếng Việt</option>
+                  <option value="english">Tiếng Anh</option>
+                  <option value="auto">Tự nhận biết</option>
+                </select>
+              </label>
+              <label class="row" style="gap:8px">Chế độ <select class="select" id="tr-model"></select></label>
+              <span class="spacer"></span>
+              <button class="btn btn-primary btn-sm" id="tr-run" type="button" disabled><span data-icon="sparkles" data-size="16"></span>Phiên âm</button>
+            </div>
+            <div id="tr-status" hidden><div class="row" style="justify-content:space-between;font-size:.88rem"><span id="tr-status-text">Đang tải mô hình…</span><span class="mono muted" id="tr-status-mb"></span></div><div class="progress" style="margin-top:8px"><i id="tr-bar"></i></div></div>
+            <div class="transcript" id="tr-out"><div class="empty"><span data-icon="text" data-size="34"></span>Văn bản lời nói sẽ hiện ở đây sau khi bạn chọn file hoặc ghi âm.</div></div>
+            <small class="muted">Phiên âm chạy ngay trên máy bạn bằng mô hình Whisper, âm thanh không bị gửi lên máy chủ. Lần đầu cần tải mô hình (40–250 MB tùy chế độ).</small>
+          </div>
+        </section>
+
+        <details class="tech" id="tech" hidden>
+          <summary><span data-icon="cpu" data-size="18"></span>Chi tiết kỹ thuật (dành cho người tò mò)</summary>
+          <div class="tech-body" id="tech-body"></div>
+        </details>
+      </div>
+
+      <aside class="tool-side">
+        <section class="card card-pad" id="level-card">
+          <h3 style="font-size:1rem" class="row"><span data-icon="vol2"></span> Mức âm thanh</h3>
+          <div id="level-body"><div class="empty" style="padding:20px 0"><span data-icon="gauge" data-size="34"></span>Chưa có âm thanh để đo.</div></div>
+          <div id="health" style="margin-top:16px"></div>
+        </section>
+        <section class="card">
+          <div class="card-title"><h3>Mức âm thanh tham chiếu</h3><a class="link" href="do-on.html#so-sanh" style="font-size:.85rem">So sánh</a></div>
+          <div id="ref-list"></div>
+        </section>
+        <section class="card card-pad">
+          <h3 style="font-size:1rem" class="row"><span data-icon="gauge"></span> Đo độ ồn theo thời gian thực?</h3>
+          <p class="muted" style="font-size:.9rem;margin:0 0 12px">Muốn biết chỗ bạn đang đứng ồn cỡ nào hoặc để web nghe liên tục và cảnh báo:</p>
+          <div style="display:grid;gap:8px">
+            <a class="btn btn-sm" href="truc-tiep.html"><span data-icon="mic" data-size="16"></span>Giám sát trực tiếp + đo dB</a>
+            <a class="btn btn-sm btn-ghost" href="do-on.html"><span data-icon="gauge" data-size="16"></span>Mở máy đo độ ồn</a>
+          </div>
+        </section>
+        <section class="card card-pad">
+          <h3 style="font-size:1rem" class="row"><span data-icon="sparkles"></span> Mẹo để nhận diện đúng</h3>
+          <ul class="muted" style="margin:0;padding-left:18px;font-size:.92rem;display:grid;gap:6px">
+            <li>Để micro cách nguồn âm khoảng 1–3 mét.</li>
+            <li>Ghi ít nhất 3–5 giây, tránh che micro.</li>
+            <li>Bật “Lọc tạp âm nền” khi có máy lạnh, quạt, xe chạy.</li>
+            <li>Kết quả “chưa chắc chắn”? Hãy giảm độ nhạy xuống “Thấp” hoặc ghi lại.</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script type="module" src="assets/js/pages/detect.js"></script>
+</body>
+</html>

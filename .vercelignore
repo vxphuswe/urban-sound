@@ -1,0 +1,7 @@
+training/
+legacy/
+tests/
+tools/
+supabase/
+*.md
+!README.md

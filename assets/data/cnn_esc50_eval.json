@@ -1,0 +1,132 @@
+{
+ "model": "best_model.pth",
+ "esc50_mapped": {
+  "per_class": {
+   "dog": {
+    "n": 40,
+    "acc": 1.0,
+    "most_predicted": "dog_bark"
+   },
+   "siren": {
+    "n": 40,
+    "acc": 0.65,
+    "most_predicted": "siren"
+   },
+   "car_horn": {
+    "n": 40,
+    "acc": 0.525,
+    "most_predicted": "car_horn"
+   },
+   "engine": {
+    "n": 40,
+    "acc": 0.825,
+    "most_predicted": "engine_idling"
+   }
+  },
+  "overall_acc": 0.75,
+  "n": 160,
+  "thresholds": {
+   "0.4": {
+    "accepted": 0.9375,
+    "selective_acc": 0.7933333333333333
+   },
+   "0.5": {
+    "accepted": 0.8875,
+    "selective_acc": 0.8098591549295775
+   },
+   "0.6": {
+    "accepted": 0.8,
+    "selective_acc": 0.84375
+   },
+   "0.7": {
+    "accepted": 0.75,
+    "selective_acc": 0.8833333333333333
+   },
+   "0.8": {
+    "accepted": 0.675,
+    "selective_acc": 0.8981481481481481
+   },
+   "0.9": {
+    "accepted": 0.5875,
+    "selective_acc": 0.9468085106382979
+   }
+  }
+ },
+ "unknown_sounds": {
+  "n": 560,
+  "mean_conf": 0.6574296951293945,
+  "thresholds": {
+   "0.4": {
+    "accepted": 0.8767857142857143
+   },
+   "0.5": {
+    "accepted": 0.7375
+   },
+   "0.6": {
+    "accepted": 0.5642857142857143
+   },
+   "0.7": {
+    "accepted": 0.42678571428571427
+   },
+   "0.8": {
+    "accepted": 0.29642857142857143
+   },
+   "0.9": {
+    "accepted": 0.16607142857142856
+   }
+  }
+ },
+ "voice": {
+  "n": 240,
+  "mean_conf": 0.6968914866447449,
+  "thresholds": {
+   "0.4": {
+    "accepted": 0.9416666666666667
+   },
+   "0.5": {
+    "accepted": 0.7791666666666667
+   },
+   "0.6": {
+    "accepted": 0.6
+   },
+   "0.7": {
+    "accepted": 0.49166666666666664
+   },
+   "0.8": {
+    "accepted": 0.38333333333333336
+   },
+   "0.9": {
+    "accepted": 0.2375
+   }
+  }
+ },
+ "us8k_fold10": {
+  "acc": 0.7945041816009558,
+  "thresholds": {
+   "0.4": {
+    "accepted": 0.974910394265233,
+    "selective_acc": 0.8100490196078431
+   },
+   "0.5": {
+    "accepted": 0.9223416965352449,
+    "selective_acc": 0.8341968911917098
+   },
+   "0.6": {
+    "accepted": 0.8518518518518519,
+    "selective_acc": 0.8653576437587658
+   },
+   "0.7": {
+    "accepted": 0.8028673835125448,
+    "selective_acc": 0.8869047619047619
+   },
+   "0.8": {
+    "accepted": 0.7347670250896058,
+    "selective_acc": 0.9154471544715447
+   },
+   "0.9": {
+    "accepted": 0.6140979689366786,
+    "selective_acc": 0.9552529182879378
+   }
+  }
+ }
+}

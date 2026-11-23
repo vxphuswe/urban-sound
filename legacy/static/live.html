@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>UrbanEar · Giám sát trực tiếp</title>
+<style>
+/*
+ ╔═══════════════════════════════════════════════════════════════════╗
+ ║  URBAN SOUND LIVE MONITOR — Production-ready                    ║
+ ║  Thiết kế theo phong cách HUD giám sát thời gian thực           ║
+ ║  Camera feed chiếm phần chính, overlay metrics trên camera,     ║
+ ║  spectrogram + waveform phía dưới.                               ║
+ ╚═══════════════════════════════════════════════════════════════════╝
+*/
+
+/* ─── CSS VARIABLES ─── */
+:root {
+  --bg:       #080c12;
+  --bg2:      #0e1319;
+  --bg3:      #151c26;
+  --panel:    #111820;
+  --ink:      #e2eaf3;
+  --dim:      #6b7f94;
+  --line:     #1c2938;
+  --accent:   #00e89c;
+  --accent2:  #00c4ff;
+  --red:      #ff3344;
+  --red-bg:   rgba(255,51,68,.14);
+  --red-glow: rgba(255,51,68,.45);
+  --green:    #00e89c;
+  --green-bg: rgba(0,232,156,.10);
+  --orange:   #ff9f1c;
+  --orange-bg:rgba(255,159,28,.12);
+  --yellow:   #ffe156;
+  --font:     "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:     "Cascadia Code","JetBrains Mono","Fira Code","SF Mono",Consolas,monospace;
+  --num:      Bahnschrift,"DIN Alternate","Roboto Condensed",var(--font);
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--ink);
+  font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+/* ─── LAYOUT: full viewport, 3 vùng dọc ─── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HEADER — thanh trên cùng, nhỏ gọn
+   ═══════════════════════════════════════════════════════════════════ */
+.hdr{
+  display:flex;align-items:center;gap:10px;
+  height:42px;min-height:42px;
+  padding:0 14px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--line);
+  z-index:20;flex-shrink:0;
+}
+.brand{display:flex;align-items:center;gap:7px;font-weight:800;font-size:14px;white-space:nowrap}
+.brand i{width:9px;height:9px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 8px var(--accent);flex-shrink:0}
+.hdr nav{display:flex;gap:2px;margin-left:8px}
+.hdr nav a{color:var(--dim);text-decoration:none;padding:4px 10px;border-radius:5px;
+  font-size:12px;font-weight:600;transition:.15s}
+.hdr nav a:hover{color:var(--ink);background:var(--bg3)}
+.hdr nav a.on{color:#0a0e14;background:var(--accent);font-weight:800}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.srv{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim)}
+.srv i{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+.srv.ok i{background:var(--green);box-shadow:0 0 5px rgba(0,232,156,.5)}
+.srv.off i{background:var(--red)}
+#who{font-size:11px;position:relative}
+#who button{background:var(--bg3);border:1px solid var(--line);border-radius:5px;
+  padding:3px 9px;font-size:11px;cursor:pointer;color:var(--dim);transition:.12s}
+#who button:hover{color:var(--ink);border-color:var(--accent)}
+.cam-sel{display:flex;align-items:center;gap:4px}
+.cam-sel select{background:var(--bg);border:1px solid var(--line);border-radius:5px;
+  padding:2px 6px;font-size:11px;color:var(--ink);cursor:pointer;max-width:130px}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CAMERA STAGE — Chiếm toàn bộ không gian còn lại
+   Camera feed + HUD overlay giống video reference
+   ═══════════════════════════════════════════════════════════════════ */
+.stage{
+  flex:1;min-height:0;
+  position:relative;overflow:hidden;
+  background:#000;
+}
+#cam{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;display:block;
+  transform:scaleX(-1);
+}
+/* Placeholder khi chưa mở camera */
+.ph{
+  position:absolute;inset:0;z-index:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  color:var(--dim);font-size:13px;
+  background:linear-gradient(160deg,#080c12 30%,#0f1620 70%);
+}
+.ph svg{opacity:.18}
+
+/* ── HUD OVERLAY ── */
+.hud{position:absolute;inset:0;z-index:5;pointer-events:none}
+
+/*
+  BADGE: góc trên trái
+  Trạng thái: idle / ok / warn / alert
+  Giống video: nền tròn bo, icon + text, shadow mạnh
+*/
+.badge{
+  position:absolute;top:12px;left:12px;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 20px 9px 14px;
+  border-radius:8px;
+  font-weight:900;font-size:15px;letter-spacing:.04em;
+  transition:all .3s;
+  text-shadow:0 2px 8px rgba(0,0,0,.7);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+.badge .ico{font-size:17px}
+.badge.idle{background:rgba(20,30,45,.88);color:var(--dim)}
+.badge.ok{background:rgba(0,60,40,.88);color:var(--green);
+  box-shadow:0 4px 24px rgba(0,232,156,.18)}
+.badge.warn{background:rgba(60,45,0,.88);color:var(--orange);
+  box-shadow:0 4px 24px rgba(255,159,28,.15)}
+.badge.alert{background:rgba(180,20,25,.92);color:#fff;
+  box-shadow:0 4px 30px var(--red-glow);
+  animation:bpulse 1.2s ease-in-out infinite}
+@keyframes bpulse{
+  0%,100%{box-shadow:0 4px 24px var(--red-glow)}
+  50%{box-shadow:0 4px 50px var(--red-glow),0 0 80px rgba(255,51,68,.12)}
+}
+
+/*
+  METRICS: góc trên phải
+  Dòng 1: nhãn P(Class) + giá trị to + timestamp
+  Dòng 2: thanh tiến trình gradient đỏ-vàng-xanh
+  Dòng 3: Streak + Energy
+*/
+.hud-r{
+  position:absolute;top:10px;right:12px;
+  display:flex;flex-direction:column;align-items:flex-end;gap:4px;
+  text-shadow:0 1px 6px rgba(0,0,0,.8);
+}
+.hud-row{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(8,12,18,.55);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  padding:3px 10px;border-radius:5px;
+}
+.hud-k{font-size:11px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+.hud-v{
+  font-family:var(--num);font-weight:900;font-size:26px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  min-width:60px;text-align:right;line-height:1;
+}
+.hud-v.sm{font-size:16px;min-width:auto}
+.hud-v.grn{color:var(--green)}.hud-v.org{color:var(--orange)}.hud-v.red{color:var(--red)}.hud-v.wht{color:#fff}
+
+/* Thanh progress: gradient từ xanh→vàng→đỏ, giống video */
+.pbar{
+  width:200px;height:10px;
+  background:rgba(255,255,255,.08);
+  border-radius:5px;overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.4);
+}
+.pfill{
+  height:100%;width:0%;border-radius:5px;
+  background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));
+  transition:width .35s;
+}
+
+.hud-ts{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.45)}
+
+/* FPS + elapsed: góc dưới phải trên camera */
+.hud-bot{
+  position:absolute;bottom:6px;right:12px;
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11px;
+  color:rgba(255,255,255,.4);
+  text-shadow:0 1px 4px rgba(0,0,0,.8);
+}
+/* Branding: góc dưới trái */
+.hud-brand{
+  position:absolute;bottom:6px;left:12px;
+  font-size:12px;font-weight:800;
+  color:var(--accent);opacity:.5;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);
+}
+
+/* Viền camera khi alert */
+.stage.a-red::after{
+  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;
+  border:3px solid var(--red);
+  box-shadow:inset 0 0 60px rgba(255,51,68,.15);
+  animation:bredge 1.4s ease-in-out infinite;
+}
+@keyframes bredge{0%,100%{opacity:1}50%{opacity:.5}}
+.stage.a-grn::after{
+  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;
+  border:2px solid rgba(0,232,156,.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VISUALIZER — Spectrogram + Waveform + Controls (dưới camera)
+   ═══════════════════════════════════════════════════════════════════ */
+.viz{
+  flex-shrink:0;
+  background:var(--bg);
+  border-top:1px solid var(--line);
+}
+/* Mỗi hàng: nhãn trái + canvas */
+.vr{display:flex;border-bottom:1px solid rgba(28,41,56,.5)}
+.vl{
+  width:84px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:8px;
+  font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);background:var(--bg);border-right:1px solid var(--line);
+}
+.vc{flex:1;min-width:0;position:relative;background:#000}
+.vc canvas{display:block;width:100%}
+.vc .tag{
+  position:absolute;right:7px;top:3px;
+  font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.3);pointer-events:none;
+}
+.vc .brd{
+  position:absolute;left:7px;bottom:3px;
+  font-size:10px;font-weight:800;color:var(--accent);opacity:.55;pointer-events:none;
+}
+
+/* Controls */
+.ctrl{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;background:var(--bg2);border-top:1px solid var(--line);
+  flex-shrink:0;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 16px;border:none;border-radius:7px;
+  font-weight:800;font-size:12px;cursor:pointer;transition:.18s;
+}
+.btn-go{background:var(--accent);color:#080c12;
+  box-shadow:0 2px 14px rgba(0,232,156,.35)}
+.btn-go:hover{box-shadow:0 4px 22px rgba(0,232,156,.5);transform:translateY(-1px)}
+.btn-go.stop{background:var(--red);color:#fff;box-shadow:0 2px 14px rgba(255,51,68,.35)}
+.btn-s{padding:5px 10px;font-size:11px;border-radius:5px;
+  background:var(--bg3);border:1px solid var(--line);color:var(--dim);cursor:pointer;transition:.12s}
+.btn-s:hover{color:var(--ink);border-color:var(--accent)}
+.ctrl-h{font-size:11px;color:var(--dim);flex:1;min-width:0}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SETTINGS DRAWER — mở từ nút ⚙
+   ═══════════════════════════════════════════════════════════════════ */
+.gear{
+  position:fixed;bottom:14px;right:14px;z-index:30;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--line);
+  color:var(--accent);font-size:18px;
+  display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 4px 18px rgba(0,0,0,.6);transition:.18s;
+}
+.gear:hover{background:var(--accent);color:var(--bg);transform:scale(1.08)}
+.dov{position:fixed;inset:0;z-index:28;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.25s}
+.dov.on{opacity:1;pointer-events:auto}
+.drw{
+  position:fixed;top:0;right:-360px;bottom:0;width:350px;z-index:29;
+  background:var(--panel);border-left:1px solid var(--line);
+  box-shadow:-6px 0 36px rgba(0,0,0,.5);
+  transition:right .32s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;padding:14px;
+}
+.drw.on{right:0}
+.drw h3{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.drw h3:first-child{margin-top:0}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 10px}
+.chip{padding:3px 10px;border:1px solid var(--line);border-radius:999px;
+  font-size:10px;font-weight:700;cursor:pointer;user-select:none;
+  color:var(--dim);background:transparent;transition:.12s}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip.on{background:rgba(0,232,156,.12);border-color:var(--accent);color:var(--accent)}
+
+/* Sliders */
+.sld{margin-bottom:8px}
+.sld-h{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:2px}
+.sld-h b{color:var(--ink);font-family:var(--mono)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;
+  background:var(--bg);border-radius:2px;outline:none;border:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:var(--accent);cursor:pointer;box-shadow:0 0 5px rgba(0,232,156,.4)}
+
+/* Event log */
+.etbl{width:100%;border-collapse:collapse;font-size:10px}
+.etbl th{font-weight:800;color:var(--dim);text-align:left;padding:3px 5px;
+  border-bottom:1px solid var(--line);font-size:9px;text-transform:uppercase;letter-spacing:.05em}
+.etbl td{padding:4px 5px;border-bottom:1px solid rgba(28,41,56,.4);white-space:nowrap}
+.etbl tr:hover{background:var(--bg3)}
+.evb{display:inline-block;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800}
+.evb.r{background:var(--red-bg);color:var(--red)}
+
+/* Auth popup */
+.apop{position:absolute;right:0;top:100%;margin-top:5px;z-index:32;
+  background:var(--panel);border:1px solid var(--line);border-radius:7px;
+  padding:12px;width:220px;box-shadow:0 6px 24px rgba(0,0,0,.6);display:none}
+.apop.sh{display:block}
+.apop input{width:100%;padding:6px 9px;background:var(--bg);border:1px solid var(--line);
+  border-radius:5px;margin-bottom:5px;font-size:11px;color:var(--ink)}
+.apop input:focus{border-color:var(--accent)}
+.apop .err{color:var(--red);font-size:10px;min-height:14px}
+.abtns{display:flex;gap:5px;margin-top:3px}
+.abtns button{flex:1}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:600px){
+  .hdr nav{display:none}
+  .badge{font-size:12px;padding:6px 14px 6px 10px;top:8px;left:8px}
+  .hud-v{font-size:20px}
+  .pbar{width:140px;height:8px}
+  .vl{width:56px;font-size:8px}
+  .drw{width:min(320px,88vw)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0s!important;transition-duration:0s!important}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<!-- ═══ HEADER ═══ -->
+<header class="hdr">
+  <div class="brand"><i></i>UrbanEar</div>
+  <nav><a href="/">Phân tích</a><a href="/live" class="on">Trực tiếp</a></nav>
+  <div class="hdr-r">
+    <div class="cam-sel"><select id="camSel"><option>Đang tải…</option></select></div>
+    <div class="srv" id="srv"><i></i><span id="srvT">Đang kết nối…</span></div>
+    <div id="who"></div>
+  </div>
+</header>
+
+<!-- ═══ CAMERA STAGE + HUD ═══ -->
+<div class="stage" id="stage">
+  <video id="cam" autoplay playsinline muted></video>
+  <div class="ph" id="ph">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+    <span id="phT">Nhấn <b>▶ Bắt đầu</b> để mở camera &amp; micro</span>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <!-- Badge trạng thái (trên trái) -->
+    <div class="badge idle" id="badge">
+      <span class="ico">⏸</span>
+      <span id="badgeT">CHƯA BẮT ĐẦU</span>
+    </div>
+
+    <!-- Metrics (trên phải) — giống video: P(Class) to + thanh bar + streak/energy -->
+    <div class="hud-r">
+      <div class="hud-row">
+        <span class="hud-k">P(Class)</span>
+        <span class="hud-v grn" id="hP">0.0%</span>
+        <span class="hud-ts" id="hTs"></span>
+      </div>
+      <div class="hud-row">
+        <div class="pbar"><div class="pfill" id="hBar"></div></div>
+      </div>
+      <div class="hud-row">
+        <span class="hud-k">Streak:</span>
+        <span class="hud-v sm wht" id="hS">0</span>
+        <span style="color:var(--dim);font-size:11px;margin:0 4px">│</span>
+        <span class="hud-k">Energy:</span>
+        <span class="hud-v sm wht" id="hE">—dB</span>
+      </div>
+    </div>
+
+    <!-- FPS + elapsed (dưới phải) -->
+    <div class="hud-bot">
+      <span id="hElap">0.0s</span>
+      <span>|</span>
+      <span id="hFps">0fps</span>
+    </div>
+    <div class="hud-brand">UrbanEar</div>
+  </div>
+</div>
+
+<!-- ═══ VISUALIZER ═══ -->
+<div class="viz" id="viz">
+  <div class="vr" style="height:110px">
+    <div class="vl">Spectrogram</div>
+    <div class="vc"><canvas id="sC" height="110"></canvas><div class="tag" id="sFps"></div></div>
+  </div>
+  <div class="vr" style="height:60px">
+    <div class="vl">Waveform</div>
+    <div class="vc"><canvas id="wC" height="60"></canvas><div class="brd">UrbanEar</div></div>
+  </div>
+  <div class="ctrl">
+    <button class="btn btn-go" id="btnGo">▶ Bắt đầu</button>
+    <span class="ctrl-h" id="hint">Cần quyền micro &amp; camera · Mô hình cửa sổ 4s, cập nhật mỗi giây.</span>
+    <button class="btn-s" id="btnFlip">🔄</button>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Drawer -->
+<button class="gear" id="gearB">⚙</button>
+<div class="dov" id="dov"></div>
+<div class="drw" id="drw">
+  <h3>🎯 Quy tắc cảnh báo</h3>
+  <div style="font-size:10px;color:var(--dim);margin-bottom:4px">Chọn lớp theo dõi:</div>
+  <div class="chips" id="chips"></div>
+  <div class="sld">
+    <div class="sld-h"><span>Ngưỡng xác suất</span><b id="thrV">70%</b></div>
+    <input type="range" id="thr" min="40" max="95" step="5" value="70">
+  </div>
+  <div class="sld">
+    <div class="sld-h"><span>Liên tiếp cần thiết</span><b id="needV">3</b></div>
+    <input type="range" id="need" min="1" max="6" step="1" value="3">
+  </div>
+  <div style="font-size:9px;color:var(--dim);line-height:1.4;margin-top:2px">
+    Cảnh báo khi lớp theo dõi vượt ngưỡng ở đủ số cửa sổ liên tiếp. &lt;50% → "Không xác định". dBFS là mức tương đối, không phải dB SPL.
+  </div>
+
+  <h3>📋 Sự kiện phiên</h3>
+  <div style="display:flex;gap:5px;margin-bottom:6px">
+    <button class="btn-s" id="csvB">Xuất CSV</button>
+  </div>
+  <div style="max-height:200px;overflow-y:auto">
+    <table class="etbl"><thead><tr><th>Giờ</th><th>Sự kiện</th><th>%</th><th>dB</th><th>s</th></tr></thead>
+    <tbody id="evB"></tbody></table>
+  </div>
+  <div id="evH" style="font-size:10px;color:var(--dim);margin-top:5px">Đăng nhập để lưu lịch sử.</div>
+
+  <div id="hiS" hidden>
+    <h3>📂 Lịch sử đã lưu</h3>
+    <button class="btn-s" id="clrB">Xóa lịch sử</button>
+    <div id="hiC" style="margin:5px 0"></div>
+    <div style="max-height:160px;overflow-y:auto"><table class="etbl"><tbody id="hB"></tbody></table></div>
+  </div>
+  <div id="adS" hidden>
+    <h3>👥 Quản trị</h3>
+    <table class="etbl"><tbody id="aB"></tbody></table>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   1. CONSTANTS & STATE
+   ═══════════════════════════════════════════════════════════════════ */
+const CL=['air_conditioner','car_horn','children_playing','dog_bark','drilling',
+  'engine_idling','gun_shot','jackhammer','siren','street_music'];
+const VN={air_conditioner:'Máy lạnh',car_horn:'Còi xe',children_playing:'Trẻ em chơi đùa',
+  dog_bark:'Chó sủa',drilling:'Máy khoan',engine_idling:'ĐC nổ cầm chừng',
+  gun_shot:'Tiếng súng',jackhammer:'Búa khoan',siren:'Còi hú',street_music:'Nhạc đường phố'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=(v,d=1)=>(v*100).toFixed(d)+'%';
+const fDb=v=>(v<0?'−':'')+Math.abs(v).toFixed(1);
+
+let user=null;
+let watch=new Set(['siren','gun_shot','car_horn','jackhammer','drilling']);
+let thr=.70, needN=3;
+let actx,analyser,proc,micStr,camStr;
+let ring,rp=0,rfill=0;
+let run=false,busy=false,ticker,raf;
+let streak=0,alarm=null,session=[];
+let fc=0,lfps=0,fps=0,t0=0;
+let mirrored=true,curDev='';
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. API
+   ═══════════════════════════════════════════════════════════════════ */
+const api=async(u,o)=>{const r=await fetch(u,o);let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(j.error||'Lỗi '+r.status);return j};
+const JP=b=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. BOOT
+   ═══════════════════════════════════════════════════════════════════ */
+async function boot(){
+  try{await api('/api/info');setSrv(true)}catch(e){setSrv(false)}
+  try{user=(await api('/api/me')).user}catch(e){}
+  drawWho();refreshHist();renderChips();enumCams();
+}
+function setSrv(ok){$('srv').className='srv '+(ok?'ok':'off');
+  $('srvT').textContent=ok?'Mô hình sẵn sàng':'Chưa kết nối'}
+
+/* ═══════════════════════════════════════════════════════════════════
+   4. CAMERAS — liệt kê & chọn camera trước/sau
+   ═══════════════════════════════════════════════════════════════════ */
+async function enumCams(){
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    tmp.getTracks().forEach(t=>t.stop());
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const cams=devs.filter(d=>d.kind==='videoinput');
+    const s=$('camSel');s.innerHTML='';
+    cams.forEach((c,i)=>{const o=document.createElement('option');
+      o.value=c.deviceId;o.textContent=c.label||('Camera '+(i+1));s.appendChild(o)});
+    if(cams.length)curDev=cams[0].deviceId;
+  }catch(e){$('camSel').innerHTML='<option>Cần quyền</option>'}
+}
+$('camSel').onchange=function(){curDev=this.value;if(run)switchCam()};
+async function switchCam(){
+  if(camStr)camStr.getTracks().forEach(t=>t.stop());
+  try{camStr=await navigator.mediaDevices.getUserMedia({
+    video:{deviceId:curDev?{exact:curDev}:undefined,width:{ideal:1280},height:{ideal:720}},audio:false});
+    $('cam').srcObject=camStr}catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   5. ACCOUNTS
+   ═══════════════════════════════════════════════════════════════════ */
+function drawWho(){
+  const w=$('who');w.innerHTML='';
+  if(user){
+    w.innerHTML=`<span style="color:var(--dim)">👤 ${esc(user.username)}</span>
+      <button id="lo">Đăng xuất</button>`;
+    $('lo').onclick=async()=>{try{await api('/api/logout',{method:'POST'})}catch(e){}
+      user=null;drawWho();refreshHist()};
+  }else{
+    w.innerHTML=`<button id="aT">Đăng nhập</button>
+      <div class="apop" id="aP">
+        <input id="aU" placeholder="Tên đăng nhập"><input id="aPw" type="password" placeholder="Mật khẩu">
+        <div class="err" id="aE"></div>
+        <div class="abtns"><button class="btn-s" id="aLi">Đăng nhập</button>
+        <button class="btn-s" id="aRe">Đăng ký</button></div></div>`;
+    $('aT').onclick=e=>{e.stopPropagation();$('aP').classList.toggle('sh')};
+    const go=act=>async()=>{try{
+      user=(await api('/api/'+act,JP({username:$('aU').value,password:$('aPw').value}))).user;
+      $('aP').classList.remove('sh');drawWho();refreshHist()}catch(e){$('aE').textContent=e.message}};
+    requestAnimationFrame(()=>{if($('aLi'))$('aLi').onclick=go('login');
+      if($('aRe'))$('aRe').onclick=go('register')});
+  }
+  $('evH').hidden=!!user;$('hiS').hidden=!user;$('adS').hidden=!(user&&user.admin);
+}
+document.addEventListener('click',e=>{const p=$('aP');
+  if(p&&!$('who').contains(e.target))p.classList.remove('sh')});
+async function refreshHist(){
+  if(!user)return;
+  try{const ev=(await api('/api/events')).events||[];
+    const c={};ev.forEach(e=>c[e.label]=(c[e.label]||0)+1);
+    $('hiC').innerHTML=Object.entries(c).map(([k,n])=>
+      `<span style="display:inline-block;padding:1px 7px;border-radius:999px;background:rgba(0,232,156,.1);color:var(--accent);font-size:9px;font-weight:800;margin:1px">${esc(VN[k]||k)}: ${n}</span>`).join('');
+    $('hB').innerHTML=ev.slice(0,40).map(e=>`<tr><td>${new Date(e.ts*1000).toLocaleString('vi-VN')}</td>
+      <td>${esc(VN[e.label]||e.label)}</td><td>${(e.conf*100).toFixed(0)}%</td>
+      <td>${e.level}dB</td><td>${e.duration.toFixed(0)}s</td></tr>`).join('');
+    if(user.admin){try{const a=(await api('/api/admin/summary')).users||[];
+      $('aB').innerHTML=a.map(x=>`<tr><td>${esc(x.username)}${x.is_admin?' ★':''}</td>
+      <td>${x.n}</td><td>${x.last?new Date(x.last*1000).toLocaleString('vi-VN'):'–'}</td></tr>`).join('')}catch(e){}}
+  }catch(e){}
+}
+$('clrB').onclick=async()=>{if(!confirm('Xóa toàn bộ?'))return;
+  try{await api('/api/events',{method:'DELETE'});refreshHist()}catch(e){}};
+
+/* ═══════════════════════════════════════════════════════════════════
+   6. RULES
+   ═══════════════════════════════════════════════════════════════════ */
+function renderChips(){
+  $('chips').innerHTML=CL.map(c=>
+    `<span class="chip${watch.has(c)?' on':''}" data-c="${c}">${VN[c]}</span>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick=()=>{const c=ch.dataset.c;watch.has(c)?watch.delete(c):watch.add(c);ch.classList.toggle('on')}});
+}
+$('thr').oninput=e=>{thr=e.target.value/100;$('thrV').textContent=Math.round(thr*100)+'%'};
+$('need').oninput=e=>{needN=+e.target.value;$('needV').textContent=needN};
+
+/* ═══════════════════════════════════════════════════════════════════
+   7. DRAWER
+   ═══════════════════════════════════════════════════════════════════ */
+$('gearB').onclick=()=>{$('drw').classList.toggle('on');$('dov').classList.toggle('on')};
+$('dov').onclick=()=>{$('drw').classList.remove('on');$('dov').classList.remove('on')};
+
+/* ═══════════════════════════════════════════════════════════════════
+   8. AUDIO — WAV encoder + ring buffer
+   ═══════════════════════════════════════════════════════════════════ */
+function mkWav(f32,sr){
+  const n=f32.length,buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);
+  v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+  w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,Math.max(-1,Math.min(1,f32[i]))*32767,true);
+  return new Blob([buf],{type:'audio/wav'});
+}
+const last4=()=>{const n=ring.length,o=new Float32Array(n);
+  o.set(ring.subarray(rp),0);o.set(ring.subarray(0,rp),n-rp);return o};
+
+/* ═══════════════════════════════════════════════════════════════════
+   9. START / STOP
+   ═══════════════════════════════════════════════════════════════════ */
+async function start(){
+  /* Mở camera */
+  try{
+    camStr=await navigator.mediaDevices.getUserMedia({
+      video:{deviceId:curDev?{exact:curDev}:undefined,width:{ideal:1280},height:{ideal:720}},audio:false});
+    $('cam').srcObject=camStr;$('ph').hidden=true;
+  }catch(e){$('phT').innerHTML='Camera không khả dụng. Chỉ dùng micro.'}
+
+  /* Mở micro */
+  try{micStr=await navigator.mediaDevices.getUserMedia({
+    audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  }catch(e){$('hint').textContent='❌ '+e.message;return}
+
+  /* AudioContext & pipeline */
+  try{actx=new AudioContext({sampleRate:22050})}catch(e){actx=new AudioContext()}
+  ring=new Float32Array(Math.round(actx.sampleRate*4));rp=0;rfill=0;streak=0;alarm=null;
+
+  analyser=actx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.65;
+  proc=actx.createScriptProcessor(4096,1,1);
+  proc.onaudioprocess=e=>{const d=e.inputBuffer.getChannelData(0);
+    for(let i=0;i<d.length;i++){ring[rp]=d[i];rp=(rp+1)%ring.length}
+    rfill=Math.min(rfill+d.length,ring.length)};
+  const src=actx.createMediaStreamSource(micStr);
+  src.connect(analyser);src.connect(proc);proc.connect(actx.destination);
+
+  run=true;fc=0;lfps=performance.now();t0=Date.now();
+  $('btnGo').classList.add('stop');$('btnGo').textContent='■ Dừng';
+  $('hint').textContent='Đang nghe…';
+  setBadge('warn','⏳','ĐANG NẠP…');
+  ticker=setInterval(tick,1000);
+  drawLoop();
+}
+
+function stop(){
+  run=false;clearInterval(ticker);cancelAnimationFrame(raf);
+  if(alarm)endAlarm();
+  proc&&proc.disconnect();micStr&&micStr.getTracks().forEach(t=>t.stop());
+  camStr&&camStr.getTracks().forEach(t=>t.stop());
+  actx&&actx.close();proc=null;micStr=null;camStr=null;actx=null;analyser=null;
+  $('cam').srcObject=null;$('ph').hidden=false;
+  $('phT').innerHTML='Nhấn <b>▶ Bắt đầu</b> để mở camera &amp; micro';
+  $('btnGo').classList.remove('stop');$('btnGo').textContent='▶ Bắt đầu';
+  setBadge('idle','⏸','ĐÃ DỪNG');
+  $('stage').className='stage';$('hint').textContent='Đã dừng.';
+}
+
+$('btnGo').onclick=()=>run?stop():start();
+$('btnFlip').onclick=()=>{mirrored=!mirrored;$('cam').style.transform=mirrored?'scaleX(-1)':'none'};
+
+/* ═══════════════════════════════════════════════════════════════════
+   10. TICK — gửi audio → server → cập nhật HUD
+   ═══════════════════════════════════════════════════════════════════ */
+async function tick(){
+  if(busy||!run)return;
+  const el=((Date.now()-t0)/1000).toFixed(1);
+  $('hElap').textContent=el+'s';
+  $('hTs').textContent=new Date().toLocaleTimeString('vi-VN');
+  if(rfill<ring.length){
+    const s=(rfill/actx.sampleRate).toFixed(0);
+    setBadge('warn','⏳',`NẠP ${s}/4s`);return}
+  busy=true;
+  try{
+    const fd=new FormData();fd.append('audio',mkWav(last4(),actx.sampleRate),'w.wav');
+    const r=await api('/api/live',{method:'POST',body:fd});
+    if(run)onResult(r);
+  }catch(e){$('hint').textContent='⚠ '+e.message}
+  busy=false;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   11. RESULT — cập nhật HUD overlay giống video reference
+   ═══════════════════════════════════════════════════════════════════ */
+function onResult(r){
+  const p=r.probs,top=r.top,tp=p[top],cls=CL[top],lv=r.level;
+  const unk=tp<.5;
+
+  // P(Class) lớn nhất trong các lớp watch
+  const wp=Math.max(0,...Array.from(watch).map(c=>p[CL.indexOf(c)]));
+
+  // P(Class) value + color
+  const wpPct=(wp*100).toFixed(1)+'%';
+  const col=wp>=thr?'red':wp>.45?'org':'grn';
+  $('hP').textContent=wpPct;
+  $('hP').className='hud-v '+col;
+
+  // Progress bar
+  $('hBar').style.width=(wp*100)+'%';
+
+  // Energy
+  $('hE').textContent=fDb(lv)+'dB';
+  $('hE').className='hud-v sm '+(lv>-10?'red':lv>-25?'org':'wht');
+
+  // Streak
+  streak=wp>=thr?streak+1:0;
+  $('hS').textContent=streak;
+  $('hS').className='hud-v sm '+(streak>=needN?'red':streak>0?'org':'wht');
+
+  // Badge trạng thái
+  if(streak>=needN){
+    if(!alarm){
+      alarm={t:Date.now()/1000,label:cls,conf:tp,level:lv};
+      if(!watch.has(alarm.label)){
+        const b=Array.from(watch).sort((a,b)=>p[CL.indexOf(b)]-p[CL.indexOf(a)])[0];
+        if(b){alarm.label=b;alarm.conf=p[CL.indexOf(b)]}
+      }
+    }
+    alarm.conf=Math.max(alarm.conf,wp);alarm.level=Math.max(alarm.level,lv);
+    setBadge('alert','⚠',(VN[alarm.label]||alarm.label).toUpperCase()+' DETECTED');
+    $('stage').className='stage a-red';
+  }else{
+    if(alarm)endAlarm();
+    if(streak>0){
+      setBadge('warn','👁','ĐANG THEO DÕI');$('stage').className='stage';
+    }else{
+      const nm=unk?'BÌNH THƯỜNG':VN[cls]||cls;
+      setBadge('ok','○',nm.toUpperCase());$('stage').className='stage a-grn';
+    }
+  }
+}
+
+function setBadge(s,ico,txt){
+  $('badge').className='badge '+s;
+  $('badge').querySelector('.ico').textContent=ico;
+  $('badgeT').textContent=txt;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   12. ALARM END → ghi nhật ký
+   ═══════════════════════════════════════════════════════════════════ */
+async function endAlarm(){
+  const a=alarm;alarm=null;if(!a)return;
+  a.duration=Date.now()/1000-a.t;session.unshift(a);renderEv();
+  if(user){try{await api('/api/events',JP({ts:a.t,label:a.label,conf:a.conf,
+    level:a.level,duration:a.duration,source:'live'}));refreshHist()}catch(e){}}
+}
+function renderEv(){
+  $('evB').innerHTML=session.slice(0,30).map(a=>{
+    const t=new Date(a.t*1000).toLocaleTimeString('vi-VN');
+    return`<tr><td style="font-family:var(--mono)">${t}</td>
+      <td><span class="evb r">${esc(VN[a.label]||a.label)}</span></td>
+      <td>${(a.conf*100).toFixed(0)}%</td><td>${a.level}dB</td>
+      <td>${a.duration.toFixed(0)}s</td></tr>`}).join('');
+}
+$('csvB').onclick=()=>{
+  const h='gio,su_kien,tin_cay,muc_am_dB,keo_dai_s';
+  const r=session.map(a=>[new Date(a.t*1000).toLocaleTimeString('vi-VN'),
+    a.label,a.conf.toFixed(3),a.level,a.duration.toFixed(0)].join(','));
+  const l=document.createElement('a');
+  l.href=URL.createObjectURL(new Blob(['\ufeff'+[h,...r].join('\n')],{type:'text/csv'}));
+  l.download='su_kien.csv';l.click()};
+
+/* ═══════════════════════════════════════════════════════════════════
+   13. DRAW — Spectrogram heatmap + Waveform
+   ═══════════════════════════════════════════════════════════════════ */
+const sC=$('sC'),sx=sC.getContext('2d');
+const wC=$('wC'),wx=wC.getContext('2d');
+
+/* Magma-inspired heatmap: đen→tím→đỏ→cam→vàng→trắng */
+function heat(v){
+  const t=v/255;
+  if(t<.15){const f=t/.15;return`rgb(${f*35|0},0,${f*60|0})`}
+  if(t<.35){const f=(t-.15)/.20;return`rgb(${35+f*110|0},${f*10|0},${60+f*40|0})`}
+  if(t<.55){const f=(t-.35)/.20;return`rgb(${145+f*80|0},${10+f*50|0},${100-f*60|0})`}
+  if(t<.75){const f=(t-.55)/.20;return`rgb(${225+f*30|0},${60+f*120|0},${40-f*30|0})`}
+  if(t<.90){const f=(t-.75)/.15;return`rgb(255,${180+f*50|0},${10+f*60|0})`}
+  const f=(t-.90)/.10;return`rgb(255,${230+f*25|0},${70+f*185|0})`;
+}
+
+function drawLoop(){
+  if(!run)return;
+  raf=requestAnimationFrame(drawLoop);
+  if(!analyser)return;
+  const freq=new Uint8Array(analyser.frequencyBinCount);
+  const time=new Uint8Array(analyser.fftSize);
+  analyser.getByteFrequencyData(freq);
+  analyser.getByteTimeDomainData(time);
+
+  // FPS
+  fc++;const now=performance.now();
+  if(now-lfps>=1000){fps=fc;fc=0;lfps=now;
+    $('hFps').textContent=fps+'fps';$('sFps').textContent=fps+'fps'}
+
+  /* ── SPECTROGRAM: cuộn từ phải sang trái ── */
+  const sW=sC.width,sH=sC.height,step=2;
+  sx.drawImage(sC,-step,0);
+  const rows=Math.min(freq.length,sH);
+  for(let y=0;y<sH;y++){
+    const k=Math.floor((1-y/sH)*(rows-1));
+    sx.fillStyle=heat(freq[k]);
+    sx.fillRect(sW-step,y,step,1);
+  }
+
+  /* ── WAVEFORM: sóng dao động ── */
+  const wW=wC.width,wH=wC.height;
+  // Trail mờ dần
+  wx.fillStyle='rgba(0,0,0,.28)';wx.fillRect(0,0,wW,wH);
+  // Đường giữa
+  wx.strokeStyle='rgba(255,255,255,.04)';wx.lineWidth=1;
+  wx.beginPath();wx.moveTo(0,wH/2);wx.lineTo(wW,wH/2);wx.stroke();
+  // Glow
+  wx.strokeStyle='rgba(0,232,156,.10)';wx.lineWidth=5;wx.lineJoin='round';
+  wx.beginPath();
+  for(let i=0;i<time.length;i++){const x=i/time.length*wW,y=time[i]/128*wH/2;
+    i?wx.lineTo(x,y):wx.moveTo(x,y)}wx.stroke();
+  // Chính
+  const g=wx.createLinearGradient(0,0,wW,0);
+  g.addColorStop(0,'rgba(0,232,156,.55)');g.addColorStop(.4,'rgba(0,196,255,.85)');
+  g.addColorStop(.8,'rgba(88,190,255,.75)');g.addColorStop(1,'rgba(167,139,250,.6)');
+  wx.strokeStyle=g;wx.lineWidth=1.5;wx.beginPath();
+  for(let i=0;i<time.length;i++){const x=i/time.length*wW,y=time[i]/128*wH/2;
+    i?wx.lineTo(x,y):wx.moveTo(x,y)}wx.stroke();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   14. RESIZE CANVASES
+   ═══════════════════════════════════════════════════════════════════ */
+function resizeC(){
+  const dpr=devicePixelRatio||1;
+  [sC,wC].forEach(c=>{
+    const p=c.parentElement,w=p.clientWidth,h=parseInt(p.parentElement.style.height)||110;
+    c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+    c.style.height=h+'px';c.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
+  });
+}
+let rzt;addEventListener('resize',()=>{clearTimeout(rzt);rzt=setTimeout(resizeC,120)});
+
+/* ═══════════════════════════════════════════════════════════════════
+   15. INIT
+   ═══════════════════════════════════════════════════════════════════ */
+resizeC();
+boot();
+</script>
+</body>
+</html>

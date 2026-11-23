@@ -1,0 +1,13 @@
+{
+  "name": "urban-sound",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Urban Sound – nhận diện âm thanh đô thị, đo độ ồn và phiên âm ngay trong trình duyệt",
+  "scripts": {
+    "dev": "npx --yes serve -l 3000 .",
+    "test": "node --test tests/*.test.mjs",
+    "download-model": "node tools/download_yamnet.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

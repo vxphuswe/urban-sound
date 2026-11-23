@@ -1,0 +1,9 @@
+{
+  "_ghi_chu": "Tên hiển thị cho NHÃN MỚI (chưa có trong categories.js). Nhãn trùng id nhóm có sẵn (dog, siren...) không cần khai báo. kind: danger | caution | people | nature | ambient. icon: tên icon trong assets/js/icons.js.",
+  "tieng_rao": { "vi": "Tiếng rao bán hàng", "icon": "speech", "kind": "people" },
+  "coi_xe_may": { "vi": "Còi xe máy", "icon": "horn", "kind": "caution" },
+  "ga_gay": { "vi": "Gà gáy", "icon": "rooster", "kind": "nature" },
+  "karaoke": { "vi": "Hát karaoke", "icon": "music", "kind": "people" },
+  "trong_truong": { "vi": "Trống trường", "icon": "bell", "kind": "people" },
+  "khac": { "vi": "Tiếng nền", "icon": "noise", "kind": "ambient", "group": "noise" }
+}

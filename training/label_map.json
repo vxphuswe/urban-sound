@@ -1,0 +1,27 @@
+{
+  "_ghi_chu": "Ánh xạ nhãn của các bộ dữ liệu công khai sang nhãn của Urban Sound (trùng id nhóm trong assets/js/categories.js). 'khac' = tiếng nền / không cần báo. null = bỏ qua.",
+  "urbansound8k": {
+    "air_conditioner": "ac",
+    "car_horn": "horn",
+    "children_playing": "children",
+    "dog_bark": "dog",
+    "drilling": "construction",
+    "engine_idling": "engine",
+    "gun_shot": "gunshot",
+    "jackhammer": "construction",
+    "siren": "siren",
+    "street_music": "music"
+  },
+  "esc50": {
+    "dog": "dog", "rooster": "poultry", "pig": "livestock", "cow": "livestock", "frog": "insect",
+    "cat": "cat", "hen": "poultry", "insects": "insect", "sheep": "livestock", "crow": "bird",
+    "rain": "rain", "sea_waves": "water", "crackling_fire": "fire", "crickets": "insect", "chirping_birds": "bird",
+    "water_drops": "water", "wind": "wind", "pouring_water": "water", "toilet_flush": "water", "thunderstorm": "rain",
+    "crying_baby": "baby", "sneezing": "body", "clapping": "crowd", "breathing": "body", "coughing": "body",
+    "footsteps": "footsteps", "laughing": "laugh", "brushing_teeth": "khac", "snoring": "body", "drinking_sipping": "khac",
+    "door_wood_knock": "door", "mouse_click": "office", "keyboard_typing": "office", "door_wood_creaks": "door", "can_opening": "khac",
+    "washing_machine": "appliance", "vacuum_cleaner": "appliance", "clock_alarm": "bell", "clock_tick": "office", "glass_breaking": "glass",
+    "helicopter": "aircraft", "chainsaw": "construction", "siren": "siren", "car_horn": "horn", "engine": "engine",
+    "train": "train", "church_bells": "bell", "airplane": "aircraft", "fireworks": "fireworks", "hand_saw": "construction"
+  }
+}

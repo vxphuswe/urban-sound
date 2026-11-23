@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Urban Sound – Nhận diện âm thanh đô thị, đo độ ồn và phiên âm</title>
+  <meta name="description" content="Bấm nút, Urban Sound nghe giúp bạn: đây là tiếng gì, ồn cỡ nào, có hại tai không. Nhận diện hơn 40 nhóm âm thanh, đo decibel và phiên âm ngay trên trình duyệt.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Urban Sound – Nhận diện âm thanh đô thị, đo độ ồn và phiên âm">
+  <meta property="og:description" content="Bấm nút, Urban Sound nghe giúp bạn: đây là tiếng gì, ồn cỡ nào, có hại tai không. Nhận diện hơn 40 nhóm âm thanh, đo decibel và phiên âm ngay trên trình duyệt.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-home">
+  <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
+  <header id="site-header"></header>
+  <main id="main">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <span class="eyebrow">Công nghệ AI <span class="sep">/</span> Âm thanh đô thị</span>
+          <h1>Nghe phố phường,<br>hiểu từng <span class="hl">âm thanh</span></h1>
+          <p class="hero-sub">Bấm một nút, Urban Sound cho bạn biết <b>đây là tiếng gì</b>, <b>ồn cỡ nào</b> và <b>có hại tai không</b> – kèm phiên âm lời nói. Chạy ngay trên trình duyệt điện thoại hoặc máy tính.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="nhan-dien.html">Nhận diện ngay <span data-icon="arrow" data-size="18"></span></a>
+            <a class="btn btn-lg" href="huong-dan.html"><span data-icon="book" data-size="18"></span>Xem hướng dẫn</a>
+          </div>
+          <div class="hero-note">
+            <span><span data-icon="check" data-size="16"></span>Không cần cài app</span>
+            <span><span data-icon="check" data-size="16"></span>Miễn phí</span>
+            <span><span data-icon="lock" data-size="16"></span>Âm thanh không rời khỏi máy</span>
+          </div>
+        </div>
+
+        <div class="reveal reveal-d2" style="position:relative">
+          <div class="mock">
+            <div class="mock-bar"><i></i><i></i><i></i></div>
+            <div class="result" data-tone="green" style="animation:none">
+              <div class="result-top">
+                <div class="result-visual" id="hero-illo"></div>
+                <div>
+                  <div class="result-kicker"><span data-icon="check" data-size="16"></span> Đã nhận diện</div>
+                  <h2 style="font-size:1.9rem">Đây là tiếng <em>chó sủa</em> <span class="pct">(96%)</span></h2>
+                  <div class="conf-bar"><span>Rất chắc chắn</span><div class="progress"><i style="width:96%"></i></div></div>
+                </div>
+              </div>
+              <div class="alts" style="margin-top:16px;padding-top:14px">
+                <div class="row" style="justify-content:space-between;font-size:.88rem;margin-bottom:8px"><span class="muted">Mức âm thanh</span><b class="mono">72 dB · To</b></div>
+                <div class="meter"><div class="meter-mask" style="left:60%"></div><div class="meter-pin" style="left:60%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-float f1"><span class="dot tone-red tone-bg" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center"><span data-icon="siren" data-size="20"></span></span><div><b>Còi hú cứu thương</b><span class="muted">Cảnh báo · 12:04</span></div></div>
+          <div class="mock-float f2"><span class="dot tone-blue tone-bg" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center"><span data-icon="text" data-size="20"></span></span><div><b>“Bánh mì nóng giòn đây…”</b><span class="muted">Phiên âm · 00:03</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm" id="cach-dung">
+      <div class="container">
+        <div class="section-head center reveal"><span class="eyebrow">Cách dùng</span><h2>Ba bước, chưa đến một phút</h2><p>Đơn giản như dịch một câu: bấm nút → nghe → xem kết quả to, rõ. <a class="link" href="huong-dan.html">Xem hướng dẫn đầy đủ</a></p></div>
+        <div class="grid-3">
+          <div class="card step-card reveal"><span class="step-num">Bước 01</span><h3>Chọn âm thanh</h3><p>Tải file từ điện thoại, video, hoặc bấm nút micro để ghi âm ngay.</p>
+            <ul><li><span data-icon="check" data-size="16"></span>MP3, M4A, WAV, MP4, MOV…</li><li><span data-icon="check" data-size="16"></span>Không cần đổi đuôi file</li></ul></div>
+          <div class="card step-card reveal reveal-d1"><span class="step-num">Bước 02</span><h3>Urban Sound lắng nghe</h3><p>AI lọc tạp âm nền (máy lạnh, quạt, xe chạy) rồi nhận diện từng đoạn.</p>
+            <ul><li><span data-icon="check" data-size="16"></span>Xử lý ngay trên máy bạn</li><li><span data-icon="check" data-size="16"></span>Không lưu, không gửi đi</li></ul></div>
+          <div class="card step-card reveal reveal-d2"><span class="step-num">Bước 03</span><h3>Xem kết quả</h3><p>“Đây là tiếng chó sủa (96%)”, mức ồn, cảnh báo sức khỏe và văn bản lời nói.</p>
+            <ul><li><span data-icon="check" data-size="16"></span>Màu đỏ chỉ khi thật sự nguy hiểm</li><li><span data-icon="check" data-size="16"></span>Lưu yêu thích, xem lại sau</li></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="container">
+        <div class="notice reveal" style="margin-bottom:28px">
+          <span data-icon="info"></span>
+          <div><b>Lưu ý trước khi dùng:</b> Urban Sound nhận diện được <b>hơn 40 nhóm âm thanh</b> quen thuộc ở thành phố (gom từ 521 loại chi tiết). Với âm thanh nằm ngoài danh sách, web sẽ báo “chưa chắc chắn” thay vì đoán bừa. Mọi định dạng phổ biến đều dùng được: MP3, M4A, WAV, OGG, MP4…</div>
+        </div>
+        <div class="section-head reveal" style="margin-bottom:24px">
+          <span class="eyebrow">Danh sách âm thanh</span>
+          <h2>Urban Sound nghe được những gì?</h2>
+        </div>
+        <div class="grid-4 reveal" id="kinds"></div>
+      </div>
+    </section>
+
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-head reveal"><span class="eyebrow">Tính năng</span><h2>Mọi thứ về âm thanh quanh bạn</h2></div>
+        <div class="grid-3">
+          <a class="card card-hover feature reveal" href="nhan-dien.html"><span class="feature-ic"><span data-icon="wave" data-size="22"></span></span><h3>Nhận diện file & video</h3><p>Tải lên bản ghi âm hoặc video, xem từng âm thanh xuất hiện ở giây thứ mấy.</p><span class="link">Thử ngay <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d1" href="truc-tiep.html"><span class="feature-ic"><span data-icon="mic" data-size="22"></span></span><h3>Giám sát trực tiếp + đo ồn</h3><p>Nghe liên tục, đo decibel theo thời gian thực, báo bằng âm thanh và rung khi có còi hú, kính vỡ, em bé khóc…</p><span class="link">Bật micro <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d2" href="do-on.html"><span class="feature-ic"><span data-icon="gauge" data-size="22"></span></span><h3>Máy đo decibel</h3><p>Đồng hồ đo độ ồn theo thời gian thực, so sánh với tiếng quen thuộc.</p><span class="link">Đo độ ồn <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal" href="nhan-dien.html#phien-am"><span class="feature-ic"><span data-icon="text" data-size="22"></span></span><h3>Phiên âm lời nói</h3><p>Chuyển giọng nói trong file, ghi âm, video thành văn bản tiếng Việt, xuất .txt/.srt.</p><span class="link">Phiên âm <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d1" href="suc-khoe.html"><span class="feature-ic"><span data-icon="shield" data-size="22"></span></span><h3>Cảnh báo sức khỏe</h3><p>Biết ngay mức ồn có hại tai không và nên tiếp xúc tối đa bao lâu mỗi ngày.</p><span class="link">Tìm hiểu <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d2" href="lich-su.html"><span class="feature-ic"><span data-icon="star" data-size="22"></span></span><h3>Lịch sử & yêu thích</h3><p>Đăng nhập để lưu trên mọi thiết bị. Mục yêu thích không bị xóa khi dọn lịch sử.</p><span class="link">Xem lịch sử <span data-icon="arrow" data-size="16"></span></span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container grid-2" style="align-items:center;gap:48px">
+        <div class="reveal">
+          <span class="eyebrow">Mức ồn</span>
+          <h2 style="font-size:clamp(1.7rem,3.2vw,2.4rem)">Bao nhiêu dB thì quá ồn?</h2>
+          <p class="muted" style="font-size:1.05rem">Tiếng thì thầm khoảng 30 dB, trò chuyện bình thường khoảng 60 dB, giao thông đông đúc khoảng 80 dB. NIOSH khuyến nghị giữ mức tiếp xúc trung bình dưới 85 dB trong ngày làm việc 8 giờ – cứ tăng 3 dB thì thời gian an toàn giảm một nửa.</p>
+          <div class="row" style="margin-top:20px"><a class="btn btn-primary" href="do-on.html">Đo thử nơi bạn đang ngồi</a><a class="link" href="suc-khoe.html">Bảo vệ thính giác <span data-icon="arrow" data-size="16"></span></a></div>
+        </div>
+        <div class="card reveal reveal-d1"><div class="card-title"><h3>Mức âm thanh tham chiếu</h3></div><div id="home-levels"></div></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container grid-2" style="grid-template-columns:.8fr 1.2fr;gap:48px;align-items:start">
+        <div class="reveal"><span class="eyebrow">Câu trả lời</span><h2 style="font-size:clamp(1.7rem,3.2vw,2.4rem)">Câu hỏi thường gặp</h2><p class="muted">Không thấy câu bạn cần? Xem <a class="link" href="huong-dan.html#hoi-dap">hướng dẫn đầy đủ</a>.</p></div>
+        <div class="faq reveal reveal-d1" id="home-faq"></div>
+      </div>
+    </section>
+
+    <section class="container reveal">
+      <div class="cta-band">
+        <div><h2>Micro sẵn sàng? Thử ngay thôi.</h2><p>Ghi âm 5 giây tiếng quanh bạn và xem Urban Sound nghe được gì.</p></div>
+        <a class="btn btn-lg" href="nhan-dien.html#ghi-am"><span data-icon="mic" data-size="20"></span>Ghi âm & nhận diện</a>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+  <script type="module" src="assets/js/pages/home.js"></script>
+</body>
+</html>

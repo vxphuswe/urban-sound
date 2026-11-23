@@ -1,0 +1,6 @@
+flask
+torch
+librosa
+soundfile
+numpy
+waitress

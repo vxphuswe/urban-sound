@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Về dự án & mô hình – Urban Sound</title>
+  <meta name="description" content="Công nghệ phía sau Urban Sound: YAMNet, lọc tạp âm, Whisper và kết quả đánh giá mô hình.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Về dự án & mô hình – Urban Sound">
+  <meta property="og:description" content="Công nghệ phía sau Urban Sound: YAMNet, lọc tạp âm, Whisper và kết quả đánh giá mô hình.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-about">
+  <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
+  <header id="site-header"></header>
+  <main id="main">
+    <section class="page-head container">
+      <span class="eyebrow">Về dự án <span class="sep">/</span> Mô hình</span>
+      <h1>Phía sau Urban Sound</h1>
+      <p>Đồ án nhận diện âm thanh đô thị. Trang này dành cho người muốn tìm hiểu kỹ thuật – người dùng bình thường không cần đọc.</p>
+    </section>
+
+    <div class="container stack" style="gap:56px">
+      <section>
+        <div class="section-head"><span class="eyebrow">Quy trình</span><h2>Từ âm thanh tới kết quả</h2></div>
+        <div class="grid-4" id="pipeline">
+          <div class="card step-card"><span class="step-num">01 · Đọc</span><h3>Giải mã mọi định dạng</h3><p>Trình duyệt đọc MP3, M4A, OGG, MP4… rồi đổi về mono 16 kHz.</p></div>
+          <div class="card step-card"><span class="step-num">02 · Lọc</span><h3>Lọc tạp âm nền</h3><p>Spectral gating ước lượng phổ nhiễu đều (máy lạnh, quạt) từ đoạn yên nhất và trừ đi.</p></div>
+          <div class="card step-card"><span class="step-num">03 · Nghe</span><h3>YAMNet (521 lớp)</h3><p>Chạy bằng TensorFlow.js trên cả âm gốc và âm đã lọc, mỗi khung 0,96 s, bước 0,48 s.</p></div>
+          <div class="card step-card"><span class="step-num">04 · Quyết định</span><h3>Gom nhóm & ngưỡng</h3><p>Cổng năng lượng, trọng số tiếng nền, làm mượt theo thời gian, ngưỡng theo độ nhạy.</p></div>
+        </div>
+      </section>
+
+      <section class="grid-2" style="align-items:start">
+        <div>
+          <span class="eyebrow">Vì sao đổi mô hình?</span>
+          <h2 style="font-size:clamp(1.5rem,3vw,2.1rem)">Mô hình cũ chỉ biết 10 lớp</h2>
+          <p class="muted">Bản đầu dùng CNN 2D tự train trên UrbanSound8K (10 lớp). Độ chính xác trên Fold 10 đạt <b id="acc"></b>, nhưng vì chỉ biết 10 lớp nên <b>mọi âm thanh lạ đều bị ép vào một trong 10 lớp</b>. Đánh giá chéo trên ESC-50 cho thấy ở ngưỡng tin cậy 0,5, có tới <b id="unk"></b> âm thanh lạ và <b id="voice"></b> tiếng người vẫn bị nhận là một lớp đô thị – đây là lý do tiếng sủa do người giả, tiếng nói… bị ra “máy lạnh”, “trẻ em chơi đùa”.</p>
+          <p class="muted">Bản mới dùng <b>YAMNet</b> (Google, huấn luyện trên AudioSet – hơn 2 triệu đoạn YouTube) làm nền, cộng thêm một lớp nhỏ do nhóm tự train cho các âm thanh đặc thù Việt Nam. Mã nguồn mô hình cũ vẫn giữ trong thư mục <span class="mono">legacy/</span> cho báo cáo.</p>
+        </div>
+        <div class="card">
+          <div class="card-title"><h3>Tỉ lệ bị nhận nhầm theo ngưỡng (mô hình cũ)</h3></div>
+          <div class="card-pad" id="thr-chart"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head"><span class="eyebrow">Mô hình cũ · UrbanSound8K Fold 10</span><h2>Ma trận nhầm lẫn</h2><p>Hàng là nhãn thật, cột là dự đoán. Ô càng đậm càng nhiều mẫu. Các cặp nhầm nhiều nhất: máy lạnh ↔ trẻ em chơi đùa, còi hú ↔ trẻ em chơi đùa.</p></div>
+        <div class="card card-pad" style="overflow:auto"><table class="simple" id="cm" style="min-width:720px"></table></div>
+      </section>
+
+      <section class="grid-3">
+        <div class="card card-pad"><h3 style="font-size:1rem" class="row"><span data-icon="cpu"></span> Nhận diện</h3><p class="muted" style="margin:0;font-size:.92rem">YAMNet · TensorFlow.js (WebGL). Mô hình ~15 MB, lưu vào IndexedDB sau lần tải đầu.</p></div>
+        <div class="card card-pad"><h3 style="font-size:1rem" class="row"><span data-icon="text"></span> Phiên âm</h3><p class="muted" style="margin:0;font-size:.92rem">Whisper (OpenAI) bản ONNX lượng tử hóa, chạy bằng Transformers.js trong Web Worker.</p></div>
+        <div class="card card-pad"><h3 style="font-size:1rem" class="row"><span data-icon="lock"></span> Tài khoản</h3><p class="muted" style="margin:0;font-size:.92rem">Supabase Auth (Google, Apple, mã email) + bảng <span class="mono">detections</span> có Row Level Security.</p></div>
+      </section>
+
+      <section class="grid-2" style="align-items:start">
+        <div class="card card-pad" id="quyen-rieng-tu">
+          <h3 style="font-size:1.1rem">Quyền riêng tư</h3>
+          <p class="muted" style="font-size:.93rem">Âm thanh, video và hình ảnh camera được xử lý ngay trên thiết bị và <b>không được tải lên máy chủ</b>. Khi đăng nhập, chỉ kết quả (tên âm thanh, độ tin cậy, mức dB, thời gian, văn bản phiên âm nếu có) được lưu vào tài khoản của bạn. Bạn có thể xóa bất cứ lúc nào ở trang Lịch sử. Tính năng “Phụ đề trực tiếp” dùng dịch vụ nhận dạng giọng nói của trình duyệt.</p>
+        </div>
+        <div class="card card-pad" id="dieu-khoan">
+          <h3 style="font-size:1.1rem">Điều khoản sử dụng</h3>
+          <p class="muted" style="font-size:.93rem">Urban Sound là sản phẩm học tập, cung cấp miễn phí và “nguyên trạng”. Kết quả nhận diện và số đo dB chỉ mang tính tham khảo, không dùng thay thiết bị đo chuẩn, không dùng làm bằng chứng pháp lý hay thay cho dịch vụ khẩn cấp. Không dùng web để ghi âm người khác trái phép.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head"><span class="eyebrow">Ghi nguồn</span><h2>Dữ liệu & thư viện mở</h2></div>
+        <div class="card card-pad">
+          <ul class="muted" style="margin:0;padding-left:18px;display:grid;gap:6px;font-size:.93rem">
+            <li>YAMNet – Google, TensorFlow Models (Apache 2.0). Tên lớp theo AudioSet Ontology (CC BY-SA 4.0).</li>
+            <li>Whisper – OpenAI (MIT); bản ONNX của Xenova; Transformers.js – Hugging Face (Apache 2.0).</li>
+            <li>TensorFlow.js (Apache 2.0) · Supabase JS (MIT).</li>
+            <li>UrbanSound8K – Salamon, Jacoby & Bello (2014), CC BY-NC 3.0.</li>
+            <li>ESC-50 – Piczak (2015), CC BY-NC 3.0. Chỉ dùng cho mục đích học tập, phi thương mại.</li>
+            <li>Phông chữ Be Vietnam Pro, JetBrains Mono (SIL OFL). Icon và minh họa do nhóm tự vẽ.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script type="module" src="assets/js/pages/about.js"></script>
+</body>
+</html>

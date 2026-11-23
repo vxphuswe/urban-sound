@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sức khỏe & an toàn thính giác – Urban Sound</title>
+  <meta name="description" content="Tiếng ồn bao nhiêu dB thì hại tai, nghe bao lâu là an toàn và cách bảo vệ thính giác.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Sức khỏe & an toàn thính giác – Urban Sound">
+  <meta property="og:description" content="Tiếng ồn bao nhiêu dB thì hại tai, nghe bao lâu là an toàn và cách bảo vệ thính giác.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-health">
+  <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
+  <header id="site-header"></header>
+  <main id="main">
+    <section class="page-head container">
+      <span class="eyebrow">Sức khỏe & an toàn</span>
+      <h1>Tai bạn có đang ổn?</h1>
+      <p>Tiếng ồn gây hại thính giác âm thầm và không hồi phục. Tìm hiểu mức nào là an toàn và nghe bao lâu thì đủ.</p>
+    </section>
+
+    <div class="container stack" style="gap:48px">
+      <section class="grid-2" style="align-items:start">
+        <div class="card card-pad">
+          <h2 style="font-size:1.3rem">Thử chọn một mức ồn</h2>
+          <p class="muted">Kéo thanh trượt để xem thời gian tiếp xúc an toàn mỗi ngày.</p>
+          <input type="range" id="h-db" min="40" max="130" value="94" style="width:100%;accent-color:var(--accent)" aria-label="Mức ồn">
+          <div class="level-big" style="margin:14px 0 6px"><span class="num" id="h-num">94</span><span class="unit">dB</span></div>
+          <p style="margin:0 0 14px" class="muted" id="h-like"></p>
+          <div id="h-banner"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><h3>Thời gian nghe an toàn mỗi ngày</h3><span class="muted" style="font-size:.8rem">Theo NIOSH</span></div>
+          <table class="simple"><thead><tr><th>Mức ồn</th><th>Ví dụ</th><th style="text-align:right">Tối đa</th></tr></thead><tbody id="h-table"></tbody></table>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head"><span class="eyebrow">Ghi nhớ</span><h2>Ba con số quan trọng</h2></div>
+        <div class="grid-3">
+          <div class="card feature"><span class="feature-ic"><span data-icon="shield" data-size="22"></span></span><h3>85 dB · 8 giờ</h3><p>NIOSH khuyến nghị mức tiếp xúc trung bình không quá 85 dB trong một ngày làm việc 8 giờ.</p></div>
+          <div class="card feature"><span class="feature-ic"><span data-icon="clock" data-size="22"></span></span><h3>+3 dB = ½ thời gian</h3><p>Cứ to thêm 3 dB thì thời gian an toàn giảm một nửa: 88 dB chỉ còn 4 giờ, 94 dB còn 1 giờ.</p></div>
+          <div class="card feature"><span class="feature-ic"><span data-icon="alert" data-size="22"></span></span><h3>Từ 120 dB</h3><p>Âm thanh rất lớn như pháo, tiếng súng ở gần có thể gây tổn thương tai chỉ trong vài giây.</p></div>
+        </div>
+      </section>
+
+      <section class="grid-2" style="align-items:start">
+        <div class="card card-pad">
+          <h2 style="font-size:1.3rem" class="row"><span data-icon="alert"></span> Dấu hiệu tai đang “kêu cứu”</h2>
+          <ul style="margin:0;padding-left:18px;display:grid;gap:8px;color:var(--text-2)">
+            <li>Ù tai, nghe tiếng rè hoặc vo ve sau khi rời chỗ ồn.</li>
+            <li>Phải nói to mới nghe được người cách mình một sải tay.</li>
+            <li>Cảm giác tai bị “đầy”, âm thanh nghe như bị bóp nghẹt.</li>
+            <li>Khó nghe trong quán đông người dù nơi yên tĩnh vẫn ổn.</li>
+          </ul>
+          <p class="muted" style="margin:14px 0 0;font-size:.9rem">Nếu tình trạng kéo dài hơn một ngày, hoặc tai đau, chảy dịch, chóng mặt, hãy đi khám bác sĩ Tai Mũi Họng.</p>
+        </div>
+        <div class="card card-pad">
+          <h2 style="font-size:1.3rem" class="row"><span data-icon="shield"></span> Bảo vệ thính giác</h2>
+          <ul style="margin:0;padding-left:18px;display:grid;gap:8px;color:var(--text-2)">
+            <li><b>Tai nghe:</b> giữ âm lượng dưới khoảng 60% và nghỉ sau mỗi giờ nghe.</li>
+            <li><b>Chỗ ồn:</b> dùng nút bịt tai hoặc chụp tai khi ở công trường, quán bar, buổi hòa nhạc.</li>
+            <li><b>Giữ khoảng cách:</b> lùi xa nguồn âm gấp đôi giúp giảm khoảng 6 dB.</li>
+            <li><b>Cho tai nghỉ:</b> sau vài giờ ở chỗ ồn, cần thời gian yên tĩnh để tai hồi phục.</li>
+            <li><b>Trẻ em:</b> nhạy cảm hơn người lớn – tránh cho bé đứng gần loa, pháo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="notice notice-warn"><span data-icon="info"></span><div>Thông tin trên trang mang tính tham khảo, không thay thế lời khuyên của bác sĩ. Số đo dB trên web là ước tính từ micro thiết bị.</div></div>
+
+      <section class="container reveal" style="width:100%">
+        <div class="cta-band"><div><h2>Nơi bạn đang ngồi ồn cỡ nào?</h2><p>Đo thử trong 30 giây với micro của bạn.</p></div><a class="btn btn-lg" href="do-on.html"><span data-icon="gauge" data-size="20"></span>Đo độ ồn</a></div>
+      </section>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+  <script type="module" src="assets/js/pages/health.js"></script>
+</body>
+</html>

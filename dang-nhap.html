@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập – Urban Sound</title>
+  <meta name="description" content="Đăng nhập bằng Google, Apple hoặc mã gửi qua email để lưu lịch sử trên mọi thiết bị.">
+  <meta name="theme-color" content="#0a0e0d">
+  <meta property="og:title" content="Đăng nhập – Urban Sound">
+  <meta property="og:description" content="Đăng nhập bằng Google, Apple hoặc mã gửi qua email để lưu lịch sử trên mọi thiết bị.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('tp.theme')||'dark'}catch(e){}</script>
+</head>
+<body class="page-login">
+  <main class="auth-page" id="main">
+    <div class="auth-left">
+      <div class="row" style="justify-content:space-between">
+        <a class="brand" href="index.html"><span class="brand-mark"><span data-icon="logo" data-size="22"></span></span><span class="brand-name">Urban Sound</span></a>
+        <a class="link" href="index.html" style="font-size:.9rem">← Về trang chủ</a>
+      </div>
+
+      <div class="auth-form">
+        <div id="step-start">
+          <h1>Đăng nhập hoặc<br>tạo tài khoản</h1>
+          <p>Lịch sử nhận diện và danh sách yêu thích của bạn – giống nhau trên điện thoại và máy tính.</p>
+          <div class="oauth">
+            <button class="btn" id="btn-google" type="button"><span id="g-logo"></span>Google</button>
+            <button class="btn btn-apple" id="btn-apple" type="button"><span id="a-logo"></span>Apple</button>
+          </div>
+          <div class="divider">hoặc với mã gửi qua email</div>
+          <form id="email-form" class="stack" style="gap:12px" novalidate>
+            <label class="field">Email <input class="input" type="email" id="email" placeholder="ban@vidu.com" autocomplete="email" required style="height:48px"></label>
+            <button class="btn btn-primary btn-block" style="height:48px" type="submit" id="send-btn">Nhận mã đăng nhập</button>
+          </form>
+        </div>
+
+        <div id="step-code" hidden>
+          <button class="link" type="button" id="back" style="background:none;border:0;padding:0;margin-bottom:18px">← Đổi email</button>
+          <h1>Nhập mã 6 số</h1>
+          <p>Chúng tôi đã gửi mã tới <b id="sent-to"></b>. Mã có hiệu lực trong vài phút – nhớ kiểm tra cả thư mục Spam.</p>
+          <form id="code-form" class="stack" style="gap:16px">
+            <div class="otp" id="otp">
+              <input inputmode="numeric" maxlength="1" aria-label="Chữ số 1" autocomplete="one-time-code"><input inputmode="numeric" maxlength="1" aria-label="Chữ số 2"><input inputmode="numeric" maxlength="1" aria-label="Chữ số 3"><input inputmode="numeric" maxlength="1" aria-label="Chữ số 4"><input inputmode="numeric" maxlength="1" aria-label="Chữ số 5"><input inputmode="numeric" maxlength="1" aria-label="Chữ số 6">
+            </div>
+            <button class="btn btn-primary btn-block" style="height:48px" type="submit" id="verify-btn">Xác nhận & đăng nhập</button>
+            <button class="btn btn-ghost btn-block" type="button" id="resend">Gửi lại mã</button>
+          </form>
+        </div>
+
+        <div id="step-done" hidden>
+          <h1>Xin chào, <span id="hello-name"></span>!</h1>
+          <p>Bạn đã đăng nhập. Lịch sử và yêu thích sẽ được lưu vào tài khoản này.</p>
+          <div class="row"><a class="btn btn-primary" id="go-next" href="lich-su.html">Tiếp tục</a><button class="btn btn-ghost" id="logout" type="button">Đăng xuất</button></div>
+        </div>
+
+        <div class="notice notice-warn demo-note" style="margin-top:22px">
+          <span data-icon="info"></span>
+          <div><b>Chế độ demo:</b> web chưa kết nối Supabase nên mã được hiển thị ngay trên màn hình và tài khoản chỉ lưu trong trình duyệt này. Xem README để bật đăng nhập thật bằng Google/Apple/email.</div>
+        </div>
+
+        <details class="tech" style="margin-top:18px">
+          <summary>Vì sao nên đăng nhập?</summary>
+          <div class="tech-body">Không bắt buộc – bạn vẫn dùng được mọi tính năng khi chưa đăng nhập. Đăng nhập giúp lưu lịch sử nhận diện, nhật ký giám sát và mục yêu thích trên mọi thiết bị. Chúng tôi không lưu file âm thanh của bạn.</div>
+        </details>
+      </div>
+
+      <p class="auth-legal">Khi tiếp tục, bạn đồng ý với <a href="gioi-thieu.html#dieu-khoan">Điều khoản sử dụng</a> và <a href="gioi-thieu.html#quyen-rieng-tu">Chính sách quyền riêng tư</a>. <a href="huong-dan.html#hoi-dap">Không đăng nhập được?</a></p>
+    </div>
+
+    <div class="auth-right" aria-hidden="true">
+      <div class="auth-cards">
+        <div class="a-card">
+          <div style="display:grid;place-items:center;flex:1;gap:16px">
+            <span style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.9);color:#0f4d45;display:grid;place-items:center"><span data-icon="mic" data-size="30"></span></span>
+            <div class="eq" id="auth-eq"></div>
+            <div class="a-line" style="width:80%;background:linear-gradient(90deg,#34d8bb 85%,rgba(255,255,255,.25) 85%)"></div>
+          </div>
+          <div class="foot">Ghi âm hoặc tải file</div>
+        </div>
+        <div class="a-card">
+          <div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#34d8bb"></span><div class="a-line m"></div></div><div class="a-line s"></div>
+          <div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#f6a54c"></span><div class="a-line m"></div></div><div class="a-line s"></div>
+          <div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#34d8bb"></span><div class="a-line m"></div></div>
+          <div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#f25f5c"></span><div class="a-line s"></div></div>
+          <div class="foot">Biết ngay là tiếng gì</div>
+        </div>
+        <div class="a-card">
+          <div class="a-line" style="height:34px;border-radius:10px;width:100%"></div>
+          <div class="a-line m"></div><div class="a-line s"></div>
+          <div class="row" style="gap:6px"><span style="width:44px;height:18px;border-radius:6px;background:#d3a46b"></span><span style="width:54px;height:18px;border-radius:6px;background:#34d8bb"></span></div>
+          <div class="row" style="gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.6)"></span><div class="a-line m"></div></div>
+          <div class="foot">Lịch sử, yêu thích, cảnh báo</div>
+        </div>
+      </div>
+      <div>
+        <h2>Một tiếng còi, một tiếng sủa hay một lời nói: biết ngay trong vài giây</h2>
+        <p>Một tài khoản cho iPhone, Android, máy tính bảng và mọi trình duyệt.</p>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="assets/js/pages/login.js"></script>
+</body>
+</html>

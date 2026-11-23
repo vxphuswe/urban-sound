@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Urban Sound Classifier</title>
+<style>
+:root{
+  --bg:#E8EBEE; --surface:#FFFFFF; --surface-2:#F3F5F7; --ink:#17202B; --muted:#55626F; --line:#D2D8DE;
+  --blue:#1C5D99; --blue-soft:#DCE9F5; --on-blue:#FFFFFF; --bar:#9DB7CF;
+  --amber:#F2B705; --on-amber:#231A00; --bad:#B3261E; --bad-soft:#FBE4E1; --ok:#1E7F5C;
+  --scope:#0E141C; --scope-2:#151E29; --scope-ink:#DCE5EE; --scope-mut:#8FA0B2; --scope-line:#2A3746;
+  --cm:28,93,153;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --num:Bahnschrift,"DIN Alternate","Roboto Condensed","Arial Narrow",var(--body);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0B1016; --surface:#141B24; --surface-2:#1A232E; --ink:#E6ECF2; --muted:#9BA9B7; --line:#2A3542;
+  --blue:#3F82C4; --blue-soft:#1B2E44; --on-blue:#FFFFFF; --bar:#41566B;
+  --bad:#F0958D; --bad-soft:#3A1D1B; --ok:#63C9A0; --cm:96,160,224;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+h1,h2,h3,p{margin:0}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+[hidden]{display:none!important}
+
+/* thanh trên */
+.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1240px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:8px 28px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
+.top nav{display:flex;gap:4px}
+.top nav a{color:var(--ink);text-decoration:none;font-weight:600;font-size:15px;padding:8px 12px;border-radius:6px}
+.top nav a:hover{background:var(--surface-2)}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--ok)} .status.off .dot{background:var(--bad)}
+
+main{max-width:1240px;margin:0 auto;padding:24px 24px 64px}
+section{margin-bottom:48px}
+.sec-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+h1,h2{font-size:24px;line-height:1.25;letter-spacing:-.01em}
+h3{font-size:16px;line-height:1.3}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px}
+.panel>h3{margin-bottom:14px}
+
+/* khu phân tích */
+.work{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start}
+.stack{display:grid;gap:16px;min-width:0}
+.drop{border:2px dashed var(--muted);border-radius:8px;padding:22px 14px;text-align:center;background:var(--surface-2);cursor:pointer;width:100%}
+.drop.on{border-color:var(--blue);background:var(--blue-soft)}
+.drop b{display:block;overflow-wrap:anywhere}
+.btn{min-height:44px;padding:0 18px;border-radius:6px;font-weight:600;cursor:pointer;border:1.5px solid var(--blue);background:transparent;color:var(--blue)}
+.btn.pri{background:var(--blue);color:var(--on-blue)}
+.btn.rec{border-color:var(--bad);color:var(--bad)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:default}
+@media (prefers-color-scheme:dark){.btn:not(.pri):not(.rec){color:#9CC3E6;border-color:#9CC3E6}}
+.col{display:grid;gap:12px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check input{width:18px;height:18px;margin-top:2px;accent-color:var(--blue);flex:none}
+audio{width:100%}
+
+.readout{display:grid;grid-template-columns:1.5fr 1fr 1.3fr;padding:0;overflow:hidden}
+.cell{padding:16px 20px;border-left:1px solid var(--line);min-width:0}
+.cell:first-child{border-left:0}
+.cell .k{font-size:14px;color:var(--muted)}
+.cell .v{font-size:30px;font-weight:700;line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
+.cell .v.num{font-size:34px;font-weight:600}
+.cell .s{font-size:14px;color:var(--muted);margin-top:2px}
+.cell .unit{font-size:18px;font-weight:600;color:var(--muted)}
+#msgs:empty{display:none}
+.cell.alarm{background:var(--amber);color:var(--on-amber);border-left:14px solid transparent;
+  border-image:repeating-linear-gradient(135deg,#17130A 0 9px,var(--amber) 9px 18px) 14}
+.cell.alarm .k,.cell.alarm .s{color:var(--on-amber)}
+.cell.alarm .v{font-size:22px}
+.note{border-radius:6px;padding:10px 14px;font-size:14px;background:var(--blue-soft)}
+.note.err{background:var(--bad-soft);color:var(--bad)}
+.note+.note{margin-top:8px}
+
+.scope{background:var(--scope);color:var(--scope-ink);border-radius:8px;padding:16px 16px 14px;border:1px solid var(--scope-line)}
+.scope-head{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;margin-bottom:10px}
+.scope-head b{font-size:15px;overflow-wrap:anywhere}
+.scope-head span{font-size:14px;color:var(--scope-mut)}
+.scope canvas{display:block;width:100%}
+.scope .cap{font-size:13px;color:var(--scope-mut);margin-top:6px}
+.scope-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:14px 0 8px}
+.scope-bar h3{margin-right:auto}
+.scope .btn{border-color:#5E7186;color:var(--scope-ink)}
+.scope .check{color:var(--scope-ink)} .scope .check input{accent-color:var(--amber)}
+.empty{padding:56px 16px;text-align:center;color:var(--scope-mut)}
+.busy{opacity:.55;pointer-events:none}
+
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(120px,190px) 1fr 64px auto;gap:12px;align-items:center;font-size:15px}
+.bar .t{height:10px;background:var(--surface-2);border-radius:2px;overflow:hidden;border:1px solid var(--line)}
+.bar .f{height:100%;background:var(--bar)}
+.bar.top{font-weight:700} .bar.top .f{background:var(--blue)}
+.bar .p{text-align:right} .bar .w{font-size:13px;color:var(--muted);min-width:74px;text-align:right}
+
+/* giám sát */
+.two{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.field{display:grid;gap:6px;margin-bottom:18px}
+.field label,.field .lab{font-weight:600;font-size:15px}
+.field .row{display:flex;gap:12px;align-items:center}
+.field input[type=range]{flex:1;accent-color:var(--blue);min-width:0}
+.field output{min-width:92px;text-align:right;font-size:18px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{min-height:36px;padding:0 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-size:14px}
+.tag[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:6px;margin-bottom:16px}
+.kpi{padding:12px 16px;border-left:1px solid var(--line)} .kpi:first-child{border-left:0}
+.kpi b{display:block;font-size:28px;font-weight:600;line-height:1.1}
+.kpi span{font-size:14px;color:var(--muted)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted)}
+td.r,th.r{text-align:right}
+.badge{display:inline-block;padding:1px 8px;border-radius:4px;background:var(--amber);color:var(--on-amber);font-weight:600;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* mô hình */
+.kpis.four{grid-template-columns:repeat(4,1fr);background:var(--surface)}
+.kpis.four b{font-size:34px}
+.cm{font-size:13px;width:auto;min-width:100%}
+.cm th,.cm td{padding:0;border:0;text-align:center}
+.cm thead th{padding:4px 0;font-weight:600}
+.cm tbody th{text-align:right;padding-right:10px;font-weight:500;color:var(--ink);white-space:nowrap}
+.cm td{width:40px;height:34px;border:2px solid var(--surface);font-family:var(--num);font-variant-numeric:tabular-nums;font-size:14px}
+.f1{display:grid;grid-template-columns:1fr 40px;gap:8px;align-items:center;min-width:130px}
+.f1 .t{height:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.f1 .f{height:100%;background:var(--blue)}
+ul.plain{margin:0;padding-left:20px} ul.plain li{margin:4px 0}
+footer{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+
+@media (max-width:980px){
+  .work,.two{grid-template-columns:minmax(0,1fr)}
+  .readout{grid-template-columns:1fr}
+  .cell{border-left:0;border-top:1px solid var(--line)} .cell:first-child{border-top:0}
+  .cell.alarm{border-left:14px solid transparent}
+  .kpis.four{grid-template-columns:repeat(2,1fr)}
+  .kpis.four .kpi:nth-child(3){border-left:0}
+  .kpis.four .kpi:nth-child(n+3){border-top:1px solid var(--line)}
+}
+@media (max-width:560px){
+  main{padding:16px 14px 48px} .top-in{padding:8px 14px}
+  .status{margin-left:0;width:100%}
+  .bar{grid-template-columns:1fr 64px;gap:4px 12px} .bar .t{grid-column:1/-1;order:3} .bar .w{display:none}
+  .kpi b{font-size:22px} .kpis.four b{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><svg width="30" height="30" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="6" fill="#1C5D99"/><path d="M8 18h3M13 12v12M18 8v20M23 13v10M28 16v4" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg>Urban Sound Classifier</div>
+  <nav aria-label="Các phần của trang"><a href="#phan-tich">Phân tích</a><a href="#giam-sat">Giám sát</a><a href="#mo-hinh">Mô hình</a><a href="/live">Trực tiếp</a></nav>
+  <div class="status" id="status" role="status"><span class="dot"></span><span id="statusText">Đang kết nối server</span></div>
+</div></header>
+
+<main>
+<section id="phan-tich" aria-labelledby="h-pt">
+  <div class="sec-head"><h1 id="h-pt">Phân tích âm thanh</h1>
+    <p class="muted">Mô hình 2D CNN huấn luyện trên UrbanSound8K, nhận diện 10 loại âm thanh đô thị.</p></div>
+  <div class="work">
+    <div class="panel col">
+      <h3>Nguồn âm</h3>
+      <button type="button" class="drop" id="drop"><b id="dropName">Kéo thả hoặc bấm để chọn file .wav</b><span class="small muted" id="dropHint">Tối đa 25 MB</span></button>
+      <input type="file" id="file" accept=".wav,audio/wav,audio/x-wav" hidden>
+      <button type="button" class="btn" id="rec">Thu âm bằng micro</button>
+      <label class="check"><input type="checkbox" id="slide" checked><span>Phân tích cả file<br><span class="muted">Cửa sổ 4 giây, bước 2 giây, tối đa 62 giây. Bỏ chọn để chỉ xét 4 giây đầu.</span></span></label>
+      <audio id="player" controls hidden></audio>
+      <button type="button" class="btn pri" id="go" disabled>Phân tích</button>
+    </div>
+
+    <div class="stack">
+      <div id="msgs" aria-live="polite"></div>
+      <div class="panel readout" id="readout" hidden>
+        <div class="cell"><div class="k">Âm thanh dự đoán</div><div class="v" id="rName"></div><div class="s" id="rSub"></div></div>
+        <div class="cell"><div class="k">Mức âm tương đối (RMS)</div><div class="v num" id="rLevel"></div><div class="s" id="rPeak"></div></div>
+        <div class="cell" id="rAlarm"><div class="k">Cảnh báo</div><div class="v" id="rAlarmV"></div><div class="s" id="rAlarmS"></div></div>
+      </div>
+
+      <div class="scope" id="scope">
+        <div class="empty" id="empty">Chưa có kết quả. Chọn một file .wav hoặc thu âm, rồi bấm Phân tích.</div>
+        <div id="scopeBody" hidden>
+          <div class="scope-head"><b id="sName"></b><span id="sMeta"></span></div>
+          <canvas id="ov" role="img" aria-label="Dạng sóng của đoạn âm thanh và các cửa sổ phân tích"></canvas>
+          <div class="cap" id="ovCap"></div>
+          <div class="scope-bar">
+            <h3 id="specTitle">Ảnh phổ Log-Mel</h3>
+            <button type="button" class="btn sm" id="prevW">Cửa sổ trước</button>
+            <button type="button" class="btn sm" id="nextW">Cửa sổ sau</button>
+            <label class="check"><input type="checkbox" id="camT"><span>Hiện Grad-CAM</span></label>
+          </div>
+          <canvas id="spec" role="img" aria-label="Ảnh phổ Log-Mel của cửa sổ đang chọn"></canvas>
+          <div class="cap" id="specCap"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="probsPanel" hidden>
+        <h3 id="probsTitle">Xác suất của 10 lớp</h3>
+        <div class="bars" id="probs"></div>
+        <div class="actions"><button type="button" class="btn sm" id="dl">Tải kết quả (JSON)</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="giam-sat" aria-labelledby="h-gs">
+  <div class="sec-head"><h2 id="h-gs">Giám sát</h2><p class="muted">Quy tắc cảnh báo thử nghiệm và nhật ký các lần phân tích trên trình duyệt này.</p></div>
+  <div class="two">
+    <div class="panel">
+      <h3>Quy tắc cảnh báo</h3>
+      <div class="field"><span class="lab">Lớp cần theo dõi</span><div class="tags" id="watch"></div></div>
+      <div class="field"><label for="sConf">Độ tin cậy tối thiểu của một cửa sổ</label><div class="row"><input type="range" id="sConf" min="30" max="95" step="5"><output class="num" id="oConf" for="sConf"></output></div></div>
+      <div class="field"><label for="sRun">Số cửa sổ liên tiếp cùng một lớp</label><div class="row"><input type="range" id="sRun" min="1" max="5" step="1"><output class="num" id="oRun" for="sRun"></output></div></div>
+      <div class="field"><label for="sLevel">Ngưỡng mức âm tương đối</label><div class="row"><input type="range" id="sLevel" min="-60" max="0" step="1"><output class="num" id="oLevel" for="sLevel"></output></div></div>
+      <ul class="plain small muted">
+        <li>Cảnh báo bật khi lớp đang theo dõi xuất hiện đủ số cửa sổ liên tiếp, hoặc khi một cửa sổ vượt ngưỡng mức âm. Với clip chỉ có một cửa sổ, một cửa sổ là đủ.</li>
+        <li>dBFS là mức so với biên độ tối đa của file ghi âm, không phải dB SPL đo bằng máy đã hiệu chuẩn.</li>
+        <li>Cảnh báo chỉ nói về loại âm thanh nhận diện được, không khẳng định có sự cố thật. “Tiếng súng” là tên một lớp trong dữ liệu.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Nhật ký phiên</h3>
+      <div class="kpis"><div class="kpi"><b class="num" id="kRuns">0</b><span>lần phân tích</span></div><div class="kpi"><b class="num" id="kWins">0</b><span>cửa sổ 4 giây</span></div><div class="kpi"><b class="num" id="kAlerts">0</b><span>lần có cảnh báo</span></div></div>
+      <div id="freqWrap" hidden><h3 style="margin-bottom:10px">Số cửa sổ theo lớp dự đoán</h3><div class="bars" id="freq" style="margin-bottom:18px"></div></div>
+      <div class="tw"><table id="logT"><thead><tr><th>Giờ</th><th>Nguồn</th><th>Dự đoán</th><th class="r">Tin cậy</th><th class="r">Mức âm</th><th>Cảnh báo</th></tr></thead><tbody id="logB"></tbody></table></div>
+      <p class="muted small" id="logEmpty" style="margin-top:10px">Chưa có lần phân tích nào. Mỗi lần bấm Phân tích sẽ thêm một dòng ở đây.</p>
+      <div class="actions"><button type="button" class="btn sm" id="csv" disabled>Tải nhật ký (CSV)</button><button type="button" class="btn sm" id="clr" disabled>Xóa nhật ký</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="mo-hinh" aria-labelledby="h-mh">
+  <div class="sec-head"><h2 id="h-mh">Mô hình</h2><p class="muted" id="splitText"></p></div>
+  <div id="metricsErr" class="note err" hidden>Không đọc được static/metrics.json nên chưa hiển thị được kết quả đánh giá.</div>
+  <div id="metrics" hidden>
+    <div class="kpis four">
+      <div class="kpi"><b class="num" id="mAcc"></b><span id="mAccS">Test accuracy</span></div>
+      <div class="kpi"><b class="num" id="mF1"></b><span>Macro F1 trên tập test</span></div>
+      <div class="kpi"><b class="num" id="mVal"></b><span id="mValS">Validation accuracy tốt nhất</span></div>
+      <div class="kpi"><b class="num" id="mPar">–</b><span>tham số của mô hình</span></div>
+    </div>
+    <div class="two" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+      <div class="panel"><h3>Ma trận nhầm lẫn</h3><div class="tw"><table class="cm" id="cm"></table></div>
+        <p class="small muted" style="margin-top:10px">Hàng là nhãn thật, cột là nhãn dự đoán. Màu ô theo tỉ lệ trong hàng. Rê chuột vào mã cột để xem tên lớp.</p></div>
+      <div class="panel"><h3>Kết quả theo lớp</h3><div class="tw"><table id="perClass"></table></div>
+        <h3 style="margin:18px 0 8px">Các cặp bị nhầm nhiều nhất</h3><ul class="plain small" id="pairs"></ul></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px"><h3>Giới hạn cần biết</h3>
+    <ul class="plain small">
+      <li>Mô hình chỉ biết 10 lớp của UrbanSound8K. Âm thanh khác (giọng nói, tiếng mưa…) vẫn bị xếp vào một trong 10 lớp, nên hãy nhìn độ tin cậy.</li>
+      <li>Dữ liệu huấn luyện không thu ở Việt Nam; kết quả với âm thanh đường phố trong nước có thể kém hơn số liệu trên.</li>
+      <li>Grad-CAM cho biết vùng ảnh phổ ảnh hưởng nhiều nhất đến dự đoán, chỉ dùng để tham khảo.</li>
+    </ul></div>
+</section>
+<footer>Dữ liệu: UrbanSound8K (Salamon, Jacoby &amp; Bello, 2014). Số liệu đánh giá đọc từ static/metrics.json; cập nhật file đó khi huấn luyện lại.</footer>
+</main>
+
+<script>
+/* ============================== hằng số và tiện ích ============================== */
+const VN={air_conditioner:"Máy lạnh",car_horn:"Còi xe",children_playing:"Trẻ em chơi đùa",dog_bark:"Chó sủa",drilling:"Máy khoan",engine_idling:"Động cơ nổ cầm chừng",gun_shot:"Tiếng súng",jackhammer:"Búa khoan",siren:"Còi hú",street_music:"Nhạc đường phố"};
+const CODE={air_conditioner:"AC",car_horn:"CH",children_playing:"CP",dog_bark:"DB",drilling:"DR",engine_idling:"EI",gun_shot:"GS",jackhammer:"JH",siren:"SI",street_music:"SM"};
+let CL=Object.keys(VN);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(v,d=1)=>Number(v).toFixed(d).replace('.',',');
+const pct=(v,d=1)=>fmt(v*100,d)+'%';
+const db=v=>(v<0?'−':'')+fmt(Math.abs(v),1)+' dBFS';
+const sec=v=>fmt(v,Number.isInteger(v)?0:1);
+const argmax=a=>a.reduce((b,v,i)=>v>a[b]?i:b,0);
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+
+let blob=null,fileName='',R=null,busy=false,online=false;
+let S=Object.assign({watch:["car_horn","drilling","jackhammer","siren","gun_shot"],conf:.6,run:2,level:-20},store.get('usc.settings',{}));
+let LOG=store.get('usc.log',[]);
+
+/* ============================== kết nối server ============================== */
+function setStatus(ok,text){online=ok;$('status').className='status '+(ok?'ok':'off');$('statusText').textContent=text}
+async function boot(){
+  try{const r=await fetch('/api/info');if(!r.ok)throw 0;const j=await r.json();CL=j.classes;setStatus(true,'Mô hình sẵn sàng');
+    $('mPar').textContent=j.params.toLocaleString('vi-VN');$('dropHint').textContent=`Tối đa ${j.max_upload_mb} MB`}
+  catch(e){setStatus(false,'Chưa kết nối server');say('Trang chưa kết nối được server. Chạy <b>python server.py</b> rồi mở <b>http://127.0.0.1:5000</b>.',true)}
+  try{const r=await fetch('/static/metrics.json',{cache:'no-store'});if(!r.ok)throw 0;renderMetrics(await r.json())}
+  catch(e){$('metricsErr').hidden=false}
+}
+function say(html,err){$('msgs').innerHTML=html?`<div class="note${err?' err':''}">${html}</div>`:''}
+
+/* ============================== chọn file và thu âm ============================== */
+function setBlob(b,name){blob=b;fileName=name;$('player').src=URL.createObjectURL(b);$('player').hidden=false;$('go').disabled=false;
+  $('dropName').textContent=name;$('dropHint').textContent='Bấm để chọn file khác'}
+function pick(f){if(!f)return;if(!/\.wav$/i.test(f.name)&&!/wav/.test(f.type)){say('File này không phải .wav. Hãy chọn file .wav.',true);return}say('');setBlob(f,f.name)}
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>pick(e.target.files[0]);
+['dragover','dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.toggle('on',ev==='dragover');if(ev==='drop')pick(e.dataTransfer.files[0])}));
+
+function toWav(buf){ // AudioBuffer -> WAV 16-bit mono (trộn đều các kênh)
+  const n=buf.length,sr=buf.sampleRate,ch=buf.numberOfChannels,d=new Float32Array(n);
+  for(let c=0;c<ch;c++){const x=buf.getChannelData(c);for(let i=0;i<n;i++)d[i]+=x[i]/ch}
+  const o=new DataView(new ArrayBuffer(44+n*2)),w=(p,s)=>[...s].forEach((c,i)=>o.setUint8(p+i,c.charCodeAt(0)));
+  w(0,'RIFF');o.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');o.setUint32(16,16,true);o.setUint16(20,1,true);o.setUint16(22,1,true);o.setUint32(24,sr,true);o.setUint32(28,sr*2,true);o.setUint16(32,2,true);o.setUint16(34,16,true);w(36,'data');o.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)o.setInt16(44+i*2,Math.max(-1,Math.min(1,d[i]))*32767,true);
+  return new Blob([o],{type:'audio/wav'})}
+const REC_MAX=60;let mr=null,chunks=[],tick=null,t0=0;
+function recLabel(){const s=Math.floor((Date.now()-t0)/1000);$('rec').textContent=`Dừng thu (${s} giây)`;if(s>=REC_MAX&&mr&&mr.state==='recording')mr.stop()}
+$('rec').onclick=async()=>{
+  if(mr&&mr.state==='recording'){mr.stop();return}
+  if(!navigator.mediaDevices||!window.MediaRecorder){say('Trình duyệt này không hỗ trợ thu âm. Hãy chọn file .wav.',true);return}
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    mr=new MediaRecorder(st);chunks=[];mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=async()=>{st.getTracks().forEach(t=>t.stop());clearInterval(tick);$('rec').textContent='Thu âm bằng micro';$('rec').classList.remove('rec');
+      try{const ac=new (window.AudioContext||window.webkitAudioContext)(),buf=await ac.decodeAudioData(await new Blob(chunks).arrayBuffer());ac.close();
+        const t=new Date();setBlob(toWav(buf),`Bản thu ${t.toLocaleTimeString('vi-VN')}.wav`);say('')}
+      catch(e){say('Không xử lý được bản thu. Hãy thu lại.',true)}};
+    mr.start();t0=Date.now();$('rec').classList.add('rec');recLabel();tick=setInterval(recLabel,250);say('')
+  }catch(e){say('Không dùng được micro. Hãy cho phép quyền micro trong trình duyệt.',true)}};
+
+/* ============================== gọi mô hình ============================== */
+async function analyze(focus){
+  if(!blob||busy)return;busy=true;const fresh=focus===undefined;
+  const fd=new FormData();fd.append('audio',blob,'audio.wav');fd.append('sliding',$('slide').checked?'1':'0');if(!fresh)fd.append('focus',focus);
+  $('scope').classList.add('busy');$('go').disabled=true;$('go').textContent='Đang phân tích';
+  try{
+    const r=await fetch('/api/predict',{method:'POST',body:fd});let j;
+    try{j=await r.json()}catch(e){throw new Error('Server trả về lỗi không xác định.')}
+    if(!r.ok)throw new Error(j.error||'Server báo lỗi.');
+    if(!online)setStatus(true,'Mô hình sẵn sàng');
+    j.name=fresh?fileName:R.name;j.sliding=fd.get('sliding')==='1';R=j;render();if(fresh)addLog(j)
+  }catch(e){const off=e instanceof TypeError;if(off)setStatus(false,'Chưa kết nối server');say(off?'Không kết nối được server. Chạy <b>python server.py</b> rồi thử lại.':esc(e.message),true)}
+  busy=false;$('scope').classList.remove('busy');$('go').disabled=false;$('go').textContent='Phân tích'}
+$('go').onclick=()=>analyze();
+$('prevW').onclick=()=>R&&analyze(R.focus-1);
+$('nextW').onclick=()=>R&&analyze(R.focus+1);
+
+/* ============================== quy tắc cảnh báo ============================== */
+function evaluate(j){
+  const tops=j.windows.map(argmax),need=Math.min(S.run,j.n_windows);let best={len:0},cur=null;
+  tops.forEach((c,i)=>{const hit=S.watch.includes(CL[c])&&j.windows[i][c]>=S.conf;
+    if(hit&&cur&&cur.cls===c){cur.len++;cur.to=i}else cur=hit?{cls:c,len:1,from:i,to:i}:null;
+    if(cur&&cur.len>best.len)best={...cur}});
+  const li=argmax(j.levels),hot=new Set();
+  const ev=best.len>=need&&best.len>0,lv=j.levels[li]>=S.level;
+  if(ev)for(let i=best.from;i<=best.to;i++)hot.add(i);
+  j.levels.forEach((v,i)=>{if(v>=S.level)hot.add(i)});
+  return {event:ev,run:best,need,level:lv,li,max:j.levels[li],hot,tops}}
+
+/* ============================== hiển thị kết quả ============================== */
+function render(){
+  const j=R,A=evaluate(j),b=j.top,p=j.probs[b],multi=j.n_windows>1;
+  const notes=[];
+  if(j.truncated)notes.push(j.sliding?`File dài hơn ${sec(j.duration)} giây: chỉ phân tích ${sec(j.duration)} giây đầu.`:'Chỉ phân tích 4 giây đầu của file. Chọn “Phân tích cả file” để xét toàn bộ.');
+  if(p<.5)notes.push('Độ tin cậy dưới 50%: âm thanh có thể lẫn nhiều nguồn hoặc nằm ngoài 10 lớp.');
+  $('msgs').innerHTML=notes.map(t=>`<div class="note">${t}</div>`).join('');
+  $('readout').hidden=false;$('probsPanel').hidden=false;$('empty').hidden=true;$('scopeBody').hidden=false;
+  $('rName').textContent=VN[CL[b]]||CL[b];
+  $('rSub').innerHTML=`<span class="num">${pct(p)}</span> độ tin cậy${multi?`, trung bình trên <span class="num">${j.n_windows}</span> cửa sổ`:''}`;
+  $('rLevel').innerHTML=db(j.level).replace(' dBFS','<span class="unit"> dBFS</span>');$('rPeak').textContent=`Đỉnh ${db(j.peak)}`;
+  const al=$('rAlarm');al.classList.toggle('alarm',A.event||A.level);
+  if(A.event||A.level){const parts=[];
+    if(A.event)parts.push(A.run.len>1?`${VN[CL[A.run.cls]]} lặp lại ${A.run.len} cửa sổ liên tiếp (từ giây ${sec(j.starts[A.run.from])})`:`phát hiện ${VN[CL[A.run.cls]]} với độ tin cậy ${pct(j.windows[A.run.from][A.run.cls])}`);
+    if(A.level)parts.push(`mức âm ${db(A.max)} vượt ngưỡng ${db(S.level)}`);
+    $('rAlarmV').textContent=A.event?'Sự kiện cần chú ý':'Mức âm cao';const t=parts.join('; ')+'.';$('rAlarmS').textContent=t[0].toUpperCase()+t.slice(1)}
+  else{$('rAlarmV').textContent='Không có';$('rAlarmS').textContent='Không quy tắc nào được kích hoạt.'}
+  $('sName').textContent=j.name;$('sMeta').textContent=`${sec(j.duration)} giây, ${j.n_windows} cửa sổ phân tích`;
+  $('prevW').hidden=$('nextW').hidden=!multi;$('prevW').disabled=j.focus<=0;$('nextW').disabled=j.focus>=j.n_windows-1;
+  const f0=j.starts[j.focus];
+  $('specTitle').textContent=multi?`Ảnh phổ Log-Mel, cửa sổ ${j.focus+1}/${j.n_windows} (giây ${sec(f0)}–${sec(f0+j.win_sec)})`:'Ảnh phổ Log-Mel';
+  $('ovCap').textContent=multi?'Mỗi ô là một cửa sổ 4 giây, ghi mã lớp dự đoán; ô càng sáng thì độ tin cậy càng cao, viền vàng là cửa sổ kích hoạt cảnh báo. Bấm vào một ô để xem ảnh phổ của cửa sổ đó.':'Dạng sóng của đoạn được phân tích. Clip ngắn hơn 4 giây được đệm im lặng ở cuối.';
+  $('specCap').textContent=`Lớp dự đoán của cửa sổ này: ${VN[CL[j.cam_class]]} (${pct(j.windows[j.focus][j.cam_class])}). Màu càng sáng thì năng lượng càng lớn.`+($('camT').checked?' Lớp phủ vàng là vùng Grad-CAM.':'');
+  const order=j.probs.map((_,i)=>i).sort((x,y)=>j.probs[y]-j.probs[x]),cnt=CL.map((_,i)=>A.tops.filter(t=>t===i).length);
+  $('probsTitle').textContent=multi?'Xác suất trung bình của 10 lớp':'Xác suất của 10 lớp';
+  $('probs').innerHTML=order.map((i,k)=>`<div class="bar${k?'':' top'}"><span>${esc(VN[CL[i]]||CL[i])}</span><div class="t"><div class="f" style="width:${j.probs[i]*100}%"></div></div><span class="p num">${pct(j.probs[i])}</span><span class="w">${multi?`${cnt[i]}/${j.n_windows} cửa sổ`:''}</span></div>`).join('');
+  draw(A)}
+$('camT').onchange=()=>R&&render();
+$('dl').onclick=()=>{if(!R)return;const j=R;download('ket_qua.json',JSON.stringify({nguon:j.name,thoi_luong_giay:j.duration,du_doan:CL[j.top],do_tin_cay:j.probs[j.top],muc_am_dbfs:j.level,dinh_dbfs:j.peak,
+  xac_suat:Object.fromEntries(CL.map((c,i)=>[c,j.probs[i]])),cua_so:j.windows.map((w,i)=>({bat_dau_giay:j.starts[i],du_doan:CL[argmax(w)],do_tin_cay:Math.max(...w),muc_am_dbfs:j.levels[i]}))},null,2),'application/json')};
+
+/* ============================== vẽ dạng sóng và ảnh phổ ============================== */
+const PADL=46,PADR=10,FONT='12px "Segoe UI",system-ui,sans-serif';let geo=null;
+function fit(c,h){const d=window.devicePixelRatio||1,w=c.clientWidth||600;c.style.height=h+'px';c.width=Math.round(w*d);c.height=Math.round(h*d);const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);g.font=FONT;return [g,w]}
+function tstep(T){return T<=4?1:T<=12?2:T<=30?5:10}
+function draw(A){if(!R)return;A=A||evaluate(R);drawOverview(A);drawSpec()}
+function drawOverview(A){
+  const j=R,multi=j.n_windows>1,WH=84,H=multi?150:112,[g,w]=fit($('ov'),H),x0=PADL,x1=w-PADR,T=j.axis_sec,X=t=>x0+t/T*(x1-x0),mid=4+WH/2;
+  geo={x0,x1,T,multi};$('ov').style.cursor=multi?'pointer':'default';
+  if(multi){const s=j.starts[j.focus];g.fillStyle='rgba(242,183,5,.18)';g.fillRect(X(s),2,X(Math.min(T,s+j.win_sec))-X(s),WH+4)}
+  g.fillStyle='#2A3746';g.fillRect(x0,mid-.5,x1-x0,1);
+  const n=j.wave.length,bw=(x1-x0)/n,mx=Math.max(...j.wave,.001);g.fillStyle='#8EC1EC';
+  j.wave.forEach((v,i)=>{const h=Math.max(.5,v/mx*(WH/2-2));g.fillRect(x0+i*bw,mid-h,Math.max(bw-.3,.8),h*2)});
+  g.fillStyle='#8FA0B2';g.textAlign='right';g.fillText('sóng',x0-8,mid+4);
+  g.textAlign='center';const st=tstep(T);for(let t=0;t<=T+1e-6;t+=st){g.fillStyle='#2A3746';g.fillRect(X(t),WH+8,1,5);g.fillStyle='#8FA0B2';g.fillText(sec(t),X(t),WH+26)}
+  g.textAlign='right';g.fillText('giây',x0-8,WH+26);
+  if(!multi)return;
+  const y=WH+36,h=26;g.textAlign='right';g.fillStyle='#8FA0B2';g.fillText('lớp',x0-8,y+17);
+  j.starts.forEach((s,i)=>{const e=i<j.n_windows-1?j.starts[i+1]:Math.min(T,s+j.win_sec),a=X(s)+1,b=Math.max(a+2,X(e)-1),c=A.tops[i],p=j.windows[i][c];
+    g.fillStyle=`rgba(142,193,236,${.14+.76*p})`;g.fillRect(a,y,b-a,h);
+    if(A.hot.has(i)){g.strokeStyle='#F2B705';g.lineWidth=2;g.strokeRect(a+1,y+1,b-a-2,h-2)}
+    if(i===j.focus){g.fillStyle='#F2B705';g.fillRect(a,y+h+3,b-a,3)}
+    if(b-a>=24){g.fillStyle=p>.5?'#0E141C':'#DCE5EE';g.textAlign='center';g.font='600 '+FONT;g.fillText(CODE[CL[c]]||'?',(a+b)/2,y+17);g.font=FONT}})}
+$('ov').onclick=e=>{if(!R||!geo||!geo.multi)return;const r=$('ov').getBoundingClientRect(),t=(e.clientX-r.left-geo.x0)/(geo.x1-geo.x0)*geo.T;
+  let k=0;R.starts.forEach((s,i)=>{if(t>=s)k=i});if(k!==R.focus)analyze(k)};
+const MAG=[[0,0,4],[81,18,124],[183,55,121],[252,137,97],[252,253,191]];
+function mag(v){const t=v/255*4,i=Math.min(3,Math.floor(t)),f=t-i;return MAG[i].map((x,k)=>x+(MAG[i+1][k]-x)*f)}
+function image(b64,fn){const a=Uint8Array.from(atob(b64),x=>x.charCodeAt(0)),t=document.createElement('canvas');t.width=173;t.height=128;const x=t.getContext('2d'),im=x.createImageData(173,128);
+  for(let r=0;r<128;r++)for(let k=0;k<173;k++)im.data.set(fn(a[r*173+k]),((127-r)*173+k)*4);x.putImageData(im,0,0);return t}
+const mel=f=>f<1000?f*3/200:15+Math.log(f/1000)/(Math.log(6.4)/27); // thang Mel Slaney (mặc định của librosa)
+function drawSpec(){
+  const j=R,H=250,[g,w]=fit($('spec'),H),x0=PADL,x1=w-PADR,y0=6,y1=H-26;
+  g.imageSmoothingEnabled=true;g.drawImage(image(j.mel,v=>[...mag(v),255]),x0,y0,x1-x0,y1-y0);
+  if($('camT').checked)g.drawImage(image(j.cam,v=>[255,214,10,Math.pow(v/255,1.3)*205]),x0,y0,x1-x0,y1-y0);
+  const top=mel(11025);g.fillStyle='#8FA0B2';g.textAlign='right';
+  [[250,'250'],[500,'500'],[1000,'1k'],[2000,'2k'],[4000,'4k'],[8000,'8k']].forEach(([f,l])=>{const y=y1-mel(f)/top*(y1-y0);g.fillRect(x0-5,y,5,1);g.fillText(l,x0-8,y+4)});
+  g.fillText('Hz',x0-8,y0+10);g.textAlign='center';const s=j.starts[j.focus];
+  for(let t=0;t<=j.win_sec;t++){const x=x0+t/j.win_sec*(x1-x0);g.fillRect(x,y1,1,5);g.fillText(sec(s+t),x,y1+19)}
+  g.textAlign='right';g.fillText('giây',x0-8,y1+19)}
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>draw(),120)});
+
+/* ============================== cài đặt cảnh báo ============================== */
+function renderSettings(){
+  $('watch').innerHTML=Object.keys(VN).map(c=>`<button type="button" class="tag" data-c="${c}" aria-pressed="${S.watch.includes(c)}">${VN[c]}</button>`).join('');
+  $('sConf').value=Math.round(S.conf*100);$('oConf').textContent=Math.round(S.conf*100)+'%';
+  $('sRun').value=S.run;$('oRun').textContent=S.run+' cửa sổ';
+  $('sLevel').value=S.level;$('oLevel').textContent=db(S.level).replace(',0','')}
+function saveSettings(){store.set('usc.settings',S);renderSettings();if(R)render()}
+$('watch').onclick=e=>{const c=e.target.dataset.c;if(!c)return;S.watch=S.watch.includes(c)?S.watch.filter(x=>x!==c):[...S.watch,c];saveSettings();$('watch').querySelector(`[data-c="${c}"]`).focus()};
+$('sConf').oninput=e=>{S.conf=e.target.value/100;saveSettings()};
+$('sRun').oninput=e=>{S.run=+e.target.value;saveSettings()};
+$('sLevel').oninput=e=>{S.level=+e.target.value;saveSettings()};
+
+/* ============================== nhật ký phiên ============================== */
+function addLog(j){const A=evaluate(j),counts={};A.tops.forEach(t=>{counts[CL[t]]=(counts[CL[t]]||0)+1});
+  LOG.unshift({t:Date.now(),name:j.name,top:CL[j.top],conf:j.probs[j.top],level:j.level,n:j.n_windows,dur:j.duration,counts,alert:(A.event?'sự kiện':'')+(A.event&&A.level?' + ':'')+(A.level?'mức âm':'')});
+  LOG=LOG.slice(0,200);store.set('usc.log',LOG);renderLog()}
+function renderLog(){
+  const tot={};let wins=0;LOG.forEach(e=>{wins+=e.n;Object.entries(e.counts||{}).forEach(([c,n])=>{tot[c]=(tot[c]||0)+n})});
+  $('kRuns').textContent=LOG.length;$('kWins').textContent=wins;$('kAlerts').textContent=LOG.filter(e=>e.alert).length;
+  const fr=Object.entries(tot).sort((a,b)=>b[1]-a[1]),mx=fr.length?fr[0][1]:1;$('freqWrap').hidden=!fr.length;
+  $('freq').innerHTML=fr.map(([c,n],k)=>`<div class="bar${k?'':' top'}"><span>${esc(VN[c]||c)}</span><div class="t"><div class="f" style="width:${n/mx*100}%"></div></div><span class="p num">${n}</span><span class="w">${pct(n/wins,0)}</span></div>`).join('');
+  $('logB').innerHTML=LOG.slice(0,50).map(e=>`<tr><td class="num">${new Date(e.t).toLocaleTimeString('vi-VN')}</td><td title="${esc(e.name)}">${esc(e.name.length>28?e.name.slice(0,26)+'…':e.name)}</td><td>${esc(VN[e.top]||e.top)}</td><td class="r num">${pct(e.conf)}</td><td class="r num">${db(e.level)}</td><td>${e.alert?`<span class="badge">${e.alert}</span>`:'<span class="muted">không</span>'}</td></tr>`).join('');
+  $('logEmpty').hidden=LOG.length>0;$('logT').hidden=!LOG.length;$('csv').disabled=$('clr').disabled=!LOG.length}
+$('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  download('nhat_ky.csv','\ufeff'+[['thoi_gian','nguon','du_doan','do_tin_cay','muc_am_dbfs','so_cua_so','thoi_luong_giay','canh_bao'],...LOG.map(e=>[new Date(e.t).toISOString(),e.name,e.top,e.conf,e.level,e.n,e.dur,e.alert])].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv')};
+$('clr').onclick=()=>{if(!confirm('Xóa toàn bộ nhật ký phiên?'))return;LOG=[];store.set('usc.log',LOG);renderLog()};
+
+/* ============================== số liệu mô hình ============================== */
+function renderMetrics(m){
+  const C=m.confusion_matrix,cls=m.classes,n=cls.length,rs=C.map(r=>r.reduce((a,b)=>a+b,0)),cs=cls.map((_,j)=>C.reduce((a,r)=>a+r[j],0)),N=rs.reduce((a,b)=>a+b,0);
+  const P=cls.map((_,i)=>cs[i]?C[i][i]/cs[i]:0),Rc=cls.map((_,i)=>rs[i]?C[i][i]/rs[i]:0),F=cls.map((_,i)=>P[i]+Rc[i]?2*P[i]*Rc[i]/(P[i]+Rc[i]):0);
+  const acc=C.reduce((a,r,i)=>a+r[i],0)/N,mf=F.reduce((a,b)=>a+b,0)/n;
+  $('splitText').textContent=`Huấn luyện trên ${m.split.train}, chọn mô hình theo ${m.split.val}, đánh giá trên ${m.split.test}.`;
+  $('mAcc').textContent=pct(acc,2);$('mAccS').textContent=`Test accuracy (${m.split.test}, ${N} mẫu)`;$('mF1').textContent=fmt(mf,2);
+  $('mVal').textContent=pct(m.val_accuracy,2);$('mValS').textContent=`Validation accuracy tốt nhất (${m.split.val})`;
+  $('cm').innerHTML=`<thead><tr><td></td>${cls.map(c=>`<th scope="col"><abbr title="${esc(VN[c]||c)}" style="text-decoration:none;cursor:help">${CODE[c]||c.slice(0,2)}</abbr></th>`).join('')}</tr></thead><tbody>`+
+    C.map((r,i)=>`<tr><th scope="row">${esc(VN[cls[i]]||cls[i])} <span class="muted">${CODE[cls[i]]||''}</span></th>${r.map((v,j)=>{const k=rs[i]?v/rs[i]:0;return `<td style="background:rgba(var(--cm),${(.05+.95*k).toFixed(2)});color:${k>.5?'#fff':'inherit'}" title="Thật: ${esc(VN[cls[i]])}, dự đoán: ${esc(VN[cls[j]])}">${v||''}</td>`}).join('')}</tr>`).join('')+'</tbody>';
+  $('perClass').innerHTML='<thead><tr><th>Lớp</th><th class="r">Số mẫu</th><th class="r">Precision</th><th class="r">Recall</th><th>F1</th></tr></thead><tbody>'+
+    cls.map((_,i)=>i).sort((a,b)=>F[b]-F[a]).map(i=>`<tr><td>${esc(VN[cls[i]]||cls[i])}</td><td class="r num">${rs[i]}</td><td class="r num">${fmt(P[i],2)}</td><td class="r num">${fmt(Rc[i],2)}</td><td><div class="f1"><div class="t"><div class="f" style="width:${F[i]*100}%"></div></div><span class="num">${fmt(F[i],2)}</span></div></td></tr>`).join('')+'</tbody>';
+  const off=[];C.forEach((r,i)=>r.forEach((v,j)=>{if(i!==j&&v)off.push([v,i,j])}));off.sort((a,b)=>b[0]-a[0]);
+  $('pairs').innerHTML=off.slice(0,3).map(([v,i,j])=>`<li>${esc(VN[cls[i]])} bị đoán thành ${esc(VN[cls[j]])}: <span class="num">${v}</span>/<span class="num">${rs[i]}</span> mẫu (${pct(v/rs[i],0)})</li>`).join('');
+  $('metrics').hidden=false}
+
+renderSettings();renderLog();boot();
+</script>
+</body>
+</html>
