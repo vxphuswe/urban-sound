@@ -58,10 +58,12 @@ export async function countCameras() {
 }
 
 export function cameraErrorMessage(e) {
-  const n = e?.name || '';
-  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Bạn chưa cho phép dùng camera. Bấm biểu tượng ổ khóa cạnh thanh địa chỉ → Cho phép Camera, rồi thử lại.';
+  const n = e?.name || '', m = e?.message || '';
+  if (document.featurePolicy && !document.featurePolicy.allowsFeature('camera')) return 'Máy chủ web đang chặn camera (Permissions-Policy trong vercel.json). Hãy kiểm tra lại cấu hình rồi tải lại trang bằng Ctrl + Shift + R.';
+  if (n === 'NotAllowedError' && /system/i.test(m)) return 'Hệ điều hành đang chặn trình duyệt dùng camera. Windows: Settings → Privacy & security → Camera → bật “Camera access” và “Let desktop apps access your camera”. macOS: System Settings → Privacy & Security → Camera → bật cho trình duyệt.';
+  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Trình duyệt đang chặn camera cho trang này. Bấm biểu tượng bên trái thanh địa chỉ → Camera → Cho phép. Nếu không thấy mục Camera, mở chrome://settings/content/camera và chọn “Trang web có thể yêu cầu dùng camera”.';
   if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Không tìm thấy camera trên thiết bị này.';
   if (n === 'NotReadableError') return 'Camera đang được ứng dụng khác dùng (Zoom, Meet…). Hãy đóng ứng dụng đó rồi thử lại.';
   if (!window.isSecureContext) return 'Camera chỉ hoạt động trên HTTPS hoặc localhost.';
-  return 'Không mở được camera: ' + (e?.message || n);
+  return `Không mở được camera (${n}): ${m}`;
 }
