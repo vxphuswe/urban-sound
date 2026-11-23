@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": false,
   "trailingSlash": false,
@@ -6,7 +6,7 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Permissions-Policy", "value": "microphone=(self), camera=()" },
+        { "key": "Permissions-Policy", "value": "microphone=(self), camera=(self)" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
@@ -29,3 +29,4 @@
     { "source": "/live", "destination": "/truc-tiep.html" }
   ]
 }
+
