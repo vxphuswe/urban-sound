@@ -61,13 +61,14 @@ def main():
         print(classification_report(yt, yp, labels=list(range(n)), target_names=labels, zero_division=0))
         report.update(clip_accuracy=acc, n_test_clips=len(clips),
                       confusion_matrix=confusion_matrix(yt, yp, labels=list(range(n))).tolist())
-    (DATA / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    (DATA / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
 
     # tên hiển thị: sounds_to_collect.json, ghi đè bởi labels_vi.json
     collect = json.loads((HERE / "sounds_to_collect.json").read_text(encoding="utf-8"))
     labels_vi = {k: {f: v[f] for f in ("vi", "icon", "kind", "group") if f in v} for k, v in collect.items() if not k.startswith("_")}
     for k, v in json.loads((HERE / "labels_vi.json").read_text(encoding="utf-8")).items():
-        labels_vi.setdefault(k, {}).update(v)
+        if isinstance(v, dict):
+            labels_vi.setdefault(k, {}).update(v)
     classes = [class_info(l, labels_vi) for l in labels]
     out = ROOT / "models" / "custom" / "head.json"
     export_head(layers, classes, out, meta={"clip_accuracy": report.get("clip_accuracy")}, min_confidence=a.min_confidence)

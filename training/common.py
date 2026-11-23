@@ -49,12 +49,12 @@ def export_head(layers, classes, path, meta=None, min_confidence=0.6):
         "meta": meta or {},
     }
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(json.dumps(out, ensure_ascii=False))
+    Path(path).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return out
 
 
 def load_head(path):
-    j = json.loads(Path(path).read_text())
+    j = json.loads(Path(path).read_text(encoding="utf-8"))
     layers = []
     for L in j["layers"]:
         W = np.frombuffer(base64.b64decode(L["w"]), dtype="<f4").reshape(L["shape"])
