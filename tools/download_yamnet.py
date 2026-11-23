@@ -1,4 +1,4 @@
-﻿"""Tải mô hình YAMNet (bản TensorFlow.js) về models/yamnet/ để web tự phục vụ mô hình từ Vercel.
+"""Tải mô hình YAMNet (bản TensorFlow.js) về models/yamnet/ để web tự phục vụ mô hình từ Vercel.
 
 Lý do: tải từ TF Hub/Kaggle ở Việt Nam đôi khi rất chậm ("đang tải mà lâu quá").
 Sau khi chạy script này và commit thư mục models/yamnet, web sẽ tải mô hình từ chính tên miền của bạn.
@@ -32,8 +32,6 @@ def main():
         try:
             print("Đang tải model.json từ", base)
             r = get(f"{base}/model.json?tfjs-format=file")
-            final = r.geturl().split("?")[0]
-            folder = final[: final.rfind("/") + 1]
             model = json.loads(r.read().decode())
             (OUT / "model.json").write_text(json.dumps(model), encoding="utf-8")
             for group in model["weightsManifest"]:
@@ -54,4 +52,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

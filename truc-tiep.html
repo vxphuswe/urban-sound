@@ -22,12 +22,12 @@
     <section class="page-head container" style="padding-bottom:20px">
       <span class="eyebrow">Giám sát trực tiếp <span class="sep">/</span> AI nghe theo thời gian thực</span>
       <h1>Nghe liên tục, báo ngay khi cần</h1>
-      <p>Bật micro, Urban Sound nhận diện âm thanh mỗi nửa giây, đo độ ồn và phát cảnh báo khi có âm thanh nguy hiểm hoặc tiếng ồn vượt ngưỡng an toàn.</p>
+      <p>Bật micro, Urban Sound nhận diện âm thanh mỗi nửa giây, đo độ ồn và phát cảnh báo khi có âm thanh nguy hiểm hoặc tiếng ồn vượt ngưỡng an toàn. Có thể bật camera (trước/sau) để quan sát và quay lại video kèm kết quả.</p>
     </section>
 
     <div class="container tool">
       <div class="tool-main">
-        <div id="quick-guide" data-anchor="#truc-tiep" data-steps='[["Bấm “Bắt đầu nghe”","Cho phép micro khi trình duyệt hỏi. Chip trạng thái chuyển sang “Đang nghe”."],["Chọn độ nhạy & cảnh báo","Cột bên phải: loại âm thanh cần báo, ngưỡng tiếng ồn, kiểu âm báo."],["Theo dõi","Kết quả AI, xác suất từng loại, độ ồn và dòng thời gian cập nhật liên tục."]]'></div>
+        <div id="quick-guide" data-anchor="#truc-tiep" data-steps='[["Bấm “Bắt đầu nghe”","Cho phép micro khi trình duyệt hỏi. Muốn quan sát thì bật Camera, trên điện thoại bấm nút xoay để đổi camera trước/sau."],["Chọn độ nhạy & cảnh báo","Cột bên phải: loại âm thanh cần báo, ngưỡng tiếng ồn, kiểu âm báo."],["Theo dõi","Kết quả AI, xác suất từng loại, độ ồn và dòng thời gian cập nhật liên tục."]]'></div>
 
         <section class="stage" id="stage" data-tone="gray" aria-live="polite">
           <div class="stage-top">
@@ -44,12 +44,21 @@
           </div>
           <div class="live-cc" id="live-cc" hidden><span class="cc-tag">Phụ đề trình duyệt</span><div id="captions"></div></div>
           <canvas class="spec" id="spec"></canvas>
+          <video id="cam-video" playsinline muted autoplay hidden></video>
+          <canvas class="cam-canvas" id="cam-canvas" aria-label="Khung camera kèm kết quả nhận diện âm thanh"></canvas>
+          <div class="cam-fab" id="cam-fab">
+            <button class="fab" id="btn-flip" type="button" aria-label="Đổi camera trước/sau" title="Đổi camera trước/sau" hidden><span data-icon="flip" data-size="22"></span></button>
+            <button class="fab" id="btn-snap" type="button" aria-label="Chụp ảnh khung hình" title="Chụp ảnh khung hình"><span data-icon="snap" data-size="22"></span></button>
+          </div>
         </section>
+        <div class="cam-note" id="cam-note" hidden><span data-icon="info" data-size="16"></span><span>Camera chỉ để <b>quan sát và ghi hình</b>. AI của Urban Sound chỉ nghe <b>âm thanh</b>, không phân tích hình ảnh.</span></div>
 
         <div class="controls card">
           <div class="ctl-wrap"><button class="ctl" id="btn-mic" type="button" aria-label="Tắt/bật tiếng micro" title="Tắt/bật tiếng micro (phím M)" disabled><span class="speaking" id="speaking"></span><span data-icon="mic" data-size="22"></span></button><span class="ctl-label">Micro</span></div>
+          <div class="ctl-wrap"><button class="ctl" id="btn-cam" type="button" aria-label="Bật/tắt camera" title="Bật/tắt camera (phím C)"><span data-icon="camOff" data-size="22"></span></button><span class="ctl-label">Camera</span></div>
           <div class="ctl-wrap"><button class="ctl big active" id="btn-start" type="button"><span data-icon="play" data-size="20"></span><span>Bắt đầu nghe</span></button><span class="ctl-label">&nbsp;</span></div>
           <div class="ctl-wrap"><button class="ctl" id="btn-cc" type="button" aria-label="Phụ đề lời nói" title="Phụ đề lời nói (nhận dạng giọng nói của trình duyệt)"><span data-icon="text" data-size="22"></span></button><span class="ctl-label">Phụ đề</span></div>
+          <div class="ctl-wrap"><button class="ctl" id="btn-rec" type="button" aria-label="Quay video" title="Quay video kèm kết quả nhận diện (phím R)"><span data-icon="record" data-size="22"></span></button><span class="ctl-label" id="rec-label">Quay</span></div>
         </div>
 
         <div class="grid-2 live-cards">

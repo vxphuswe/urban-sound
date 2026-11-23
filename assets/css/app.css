@@ -694,3 +694,25 @@ table.simple td.num { font-family: var(--mono); text-align: right; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Trực tiếp: chế độ camera (camera chỉ để quan sát & ghi hình) */
+.stage .cam-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 4; background: #050808; }
+.stage .cam-fab { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: none; flex-direction: column; gap: 10px; z-index: 6; }
+.stage .fab { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.45); color: #fff; backdrop-filter: blur(6px); transition: transform .12s, background .15s; }
+.stage .fab:hover { background: rgba(0,0,0,.65); transform: scale(1.05); }
+.stage .fab:active { transform: scale(.94); }
+.stage .fab[hidden] { display: none; }
+.stage.cam-mode { min-height: 0; aspect-ratio: var(--ar, 16 / 9); max-height: 80vh; border-width: 0; background: #050808; }
+.stage.cam-mode .cam-canvas { display: block; }
+.stage.cam-mode .cam-fab { display: flex; }
+.stage.cam-mode .stage-top, .stage.cam-mode .stage-center, .stage.cam-mode canvas.spec, .stage.cam-mode .live-cc { visibility: hidden; }
+.stage.cc-on:not(.cam-mode) .stage-center { padding-bottom: 260px; }
+.stage canvas.spec { opacity: .9; border-top: 1px solid var(--line); }
+.cam-note { display: flex; gap: 8px; align-items: flex-start; font-size: .84rem; color: var(--muted); padding: 10px 14px; border: 1px dashed var(--line-2); border-radius: 12px; margin-top: 10px; }
+.cam-note[hidden] { display: none; }
+.ctl.rec { background: var(--red); color: #fff; border-color: transparent; animation: recpulse 1.2s ease-in-out infinite; }
+@keyframes recpulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--red) 30%, transparent); } }
+@media (max-width: 640px) {
+  .stage.cam-mode { max-height: 72vh; margin-inline: -8px; border-radius: 14px; }
+  .stage .fab { width: 44px; height: 44px; }
+}

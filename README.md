@@ -25,7 +25,7 @@ Web nhận diện âm thanh, đo độ ồn và phiên âm lời nói **chạy h
 | Toàn thuật ngữ (dBFS, Log-Mel, Grad-CAM, P(CLASS)…) | Giao diện chỉ còn: tên âm thanh, %, mức ồn "Nhỏ/Vừa/To/Rất ồn" + icon loa. Chi tiết kỹ thuật gom vào ô "Chi tiết kỹ thuật" và trang Giới thiệu |
 | Trẻ em chơi đùa cũng hiện cảnh báo vàng sọc đen | Màu theo loại: **đỏ chỉ cho nguy hiểm thật** (súng, nổ, còi hú, báo cháy, kính vỡ), trẻ em/nhạc màu xanh. Viền đổi màu khi âm thanh to |
 | Phải kéo 3 thanh trượt dBFS | Nút chọn nhanh Thấp/Trung bình/Cao; số liệu nâng cao giấu trong "Cài đặt nâng cao" |
-| Bắt buộc bật camera, không biết mic có bật không | Chỉ cần micro (đã bỏ hẳn camera); chip trạng thái + vòng sáng khi có tiếng |
+| Bắt buộc bật camera, không biết mic có bật không | Chỉ cần micro; camera là **tùy chọn** (đổi trước/sau trên điện thoại, quay video kèm kết quả) và chỉ để quan sát, AI không phân tích hình; chip trạng thái + vòng sáng khi có tiếng |
 | Mỗi mục nên là trang riêng | 10 trang riêng, menu có icon và menu thả xuống |
 | Không có đăng nhập / chỗ có chỗ không | Nút đăng nhập ở mọi trang; trang đăng nhập chia đôi giống mẫu SozAI |
 | Cần yêu thích | Nút ngôi sao + tab Yêu thích, dọn lịch sử vẫn giữ mục yêu thích |
@@ -83,7 +83,7 @@ Rồi mở **Pull Request** vào `main`, nhờ một bạn khác review. Quy ư�
 4. Bấm **Deploy**. Vài giây sau có địa chỉ `https://urban-sound.vercel.app` (HTTPS sẵn → micro chạy được trên điện thoại).
 5. Từ giờ mỗi lần push lên `main` Vercel tự deploy; mỗi Pull Request có một link xem thử riêng.
 
-`vercel.json` đã cấu hình quyền micro (camera bị chặn), cache cho mô hình và vài đường dẫn ngắn (`/nhan-dien`, `/truc-tiep`…). `.vercelignore` loại `training/`, `legacy/` khỏi bản deploy.
+`vercel.json` đã cấu hình quyền micro và camera (chỉ cho chính trang web), cache cho mô hình và vài đường dẫn ngắn (`/nhan-dien`, `/truc-tiep`…). `.vercelignore` loại `training/`, `legacy/` khỏi bản deploy.
 
 ## Đăng nhập thật (Supabase – miễn phí)
 

@@ -1,0 +1,67 @@
+// Camera để QUAN SÁT và GHI HÌNH. AI của Urban Sound chỉ phân tích âm thanh, không phân tích hình ảnh.
+
+export const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+
+export class Camera {
+  constructor(video) {
+    this.video = video;
+    this.facing = isMobile() ? 'environment' : 'user'; // điện thoại: mặc định camera sau
+    this.stream = null;
+  }
+
+  get on() { return !!this.stream; }
+  get ready() { return this.on && this.video.readyState >= 2 && this.video.videoWidth > 0; }
+  /** Camera trước được lật ngang như gương, camera sau giữ nguyên. */
+  get mirror() { return this.facing !== 'environment'; }
+
+  async start(facing = this.facing) {
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } };
+    this.stop(); // nhiều điện thoại không mở được 2 camera cùng lúc
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { ...base, facingMode: { exact: facing } }, audio: false });
+    } catch (e) {
+      if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;
+      // Máy tính chỉ có 1 webcam hoặc trình duyệt không hỗ trợ "exact" → thử lại mềm hơn
+      stream = await navigator.mediaDevices.getUserMedia({ video: { ...base, facingMode: { ideal: facing } }, audio: false });
+    }
+    this.stream = stream;
+    const st = stream.getVideoTracks()[0]?.getSettings?.() || {};
+    this.facing = st.facingMode || facing;
+    this.video.srcObject = stream;
+    this.video.muted = true;
+    await this.video.play().catch(() => {});
+    return this;
+  }
+
+  async flip() {
+    const prev = this.facing;
+    try {
+      return await this.start(prev === 'environment' ? 'user' : 'environment');
+    } catch (e) {
+      await this.start(prev).catch(() => {}); // không đổi được → mở lại camera cũ
+      throw e;
+    }
+  }
+
+  get track() { return this.stream?.getVideoTracks()[0]; }
+
+  stop() {
+    this.stream?.getTracks().forEach((t) => t.stop());
+    this.stream = null;
+    if (this.video) this.video.srcObject = null;
+  }
+}
+
+export async function countCameras() {
+  try { return (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput').length; } catch { return 0; }
+}
+
+export function cameraErrorMessage(e) {
+  const n = e?.name || '';
+  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Bạn chưa cho phép dùng camera. Bấm biểu tượng ổ khóa cạnh thanh địa chỉ → Cho phép Camera, rồi thử lại.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Không tìm thấy camera trên thiết bị này.';
+  if (n === 'NotReadableError') return 'Camera đang được ứng dụng khác dùng (Zoom, Meet…). Hãy đóng ứng dụng đó rồi thử lại.';
+  if (!window.isSecureContext) return 'Camera chỉ hoạt động trên HTTPS hoặc localhost.';
+  return 'Không mở được camera: ' + (e?.message || n);
+}

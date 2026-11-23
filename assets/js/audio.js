@@ -122,7 +122,13 @@ export class LiveMic {
   async start(deviceId) {
     const audio = { ...MIC_CONSTRAINTS };
     if (deviceId) audio.deviceId = { exact: deviceId };
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio });
+    } catch (e) {
+      if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;
+      // Một số micro/driver không chịu các tùy chọn tắt lọc → thử lại với cấu hình mặc định
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId } : true });
+    }
     const ctx = audioContext();
     if (ctx.state === 'suspended') await ctx.resume();
     this.ctx = ctx;

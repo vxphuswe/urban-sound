@@ -24,13 +24,12 @@ for (const base of BASES) {
   try {
     console.log('Đang tải model.json từ', base);
     const r = await get(`${base}/model.json?tfjs-format=file`);
-    const finalBase = r.url.split('?')[0].replace(/model\.json$/, '');
     const model = await r.json();
     await fs.writeFile(path.join(OUT, 'model.json'), JSON.stringify(model));
     for (const group of model.weightsManifest) {
       for (const p of group.paths) {
         process.stdout.write(`  ${p} … `);
-        const w = await get(`${finalBase}${p}?tfjs-format=file`);
+        const w = await get(`${base}/${p}?tfjs-format=file`);
         await fs.writeFile(path.join(OUT, p), Buffer.from(await w.arrayBuffer()));
         console.log('ok');
       }
