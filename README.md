@@ -6,7 +6,7 @@ Web nhận diện âm thanh, đo độ ồn và phiên âm lời nói **chạy h
 | --- | --- |
 | `index.html` | Trang chủ: giới thiệu, danh sách âm thanh nhận diện được (đặt lên đầu), hỏi đáp |
 | `nhan-dien.html` | Tải file **mọi định dạng** (MP3, M4A, WAV, OGG, MP4, MOV…) hoặc ghi âm → kết quả lớn "Đây là tiếng chó sủa (96%)", dòng thời gian, mức dB, cảnh báo sức khỏe, **phiên âm thành văn bản** (.txt/.srt) |
-| `truc-tiep.html` | Giám sát liên tục: độ nhạy Thấp/Trung bình/Cao, chọn âm cần báo, âm báo + rung, trạng thái micro/camera kiểu Discord, camera tùy chọn (quay hiện trường, chụp ảnh khi có sự kiện), phụ đề trực tiếp, nhật ký + CSV |
+| `truc-tiep.html` | Giám sát liên tục (chỉ micro): nhận diện mỗi 0,5 s, trạng thái rõ ràng (Đang tắt / Đang tải / Đang nghe / Đang xử lý / Đã phát hiện), xác suất 5 lớp cao nhất, dòng thời gian 60 s, đo độ ồn ước tính, báo động toàn màn hình kèm âm báo kiểu chuông báo cháy khi có âm nguy hiểm hoặc tiếng ồn vượt ngưỡng, phụ đề trong khung, nhật ký + CSV |
 | `do-on.html` | Máy đo decibel: đồng hồ đổi màu, min/TB/max, biểu đồ 60 giây, bảng mức tham chiếu, **so sánh mức ồn** |
 | `suc-khoe.html` | Thời gian nghe an toàn (NIOSH 85 dB/8 giờ, +3 dB = ½ thời gian), dấu hiệu, cách bảo vệ tai |
 | `huong-dan.html` | Hướng dẫn từng bước, ý nghĩa màu sắc, danh sách nhóm âm thanh, hỏi đáp, xử lý lỗi micro |
@@ -25,7 +25,7 @@ Web nhận diện âm thanh, đo độ ồn và phiên âm lời nói **chạy h
 | Toàn thuật ngữ (dBFS, Log-Mel, Grad-CAM, P(CLASS)…) | Giao diện chỉ còn: tên âm thanh, %, mức ồn "Nhỏ/Vừa/To/Rất ồn" + icon loa. Chi tiết kỹ thuật gom vào ô "Chi tiết kỹ thuật" và trang Giới thiệu |
 | Trẻ em chơi đùa cũng hiện cảnh báo vàng sọc đen | Màu theo loại: **đỏ chỉ cho nguy hiểm thật** (súng, nổ, còi hú, báo cháy, kính vỡ), trẻ em/nhạc màu xanh. Viền đổi màu khi âm thanh to |
 | Phải kéo 3 thanh trượt dBFS | Nút chọn nhanh Thấp/Trung bình/Cao; số liệu nâng cao giấu trong "Cài đặt nâng cao" |
-| Bắt buộc bật camera, không biết mic có bật không | Chỉ cần micro; camera tùy chọn; đèn trạng thái Micro/Camera + vòng sáng khi có tiếng |
+| Bắt buộc bật camera, không biết mic có bật không | Chỉ cần micro (đã bỏ hẳn camera); chip trạng thái + vòng sáng khi có tiếng |
 | Mỗi mục nên là trang riêng | 10 trang riêng, menu có icon và menu thả xuống |
 | Không có đăng nhập / chỗ có chỗ không | Nút đăng nhập ở mọi trang; trang đăng nhập chia đôi giống mẫu SozAI |
 | Cần yêu thích | Nút ngôi sao + tab Yêu thích, dọn lịch sử vẫn giữ mục yêu thích |
@@ -83,7 +83,7 @@ Rồi mở **Pull Request** vào `main`, nhờ một bạn khác review. Quy ư�
 4. Bấm **Deploy**. Vài giây sau có địa chỉ `https://urban-sound.vercel.app` (HTTPS sẵn → micro chạy được trên điện thoại).
 5. Từ giờ mỗi lần push lên `main` Vercel tự deploy; mỗi Pull Request có một link xem thử riêng.
 
-`vercel.json` đã cấu hình quyền micro/camera, cache cho mô hình và vài đường dẫn ngắn (`/nhan-dien`, `/truc-tiep`…). `.vercelignore` loại `training/`, `legacy/` khỏi bản deploy.
+`vercel.json` đã cấu hình quyền micro (camera bị chặn), cache cho mô hình và vài đường dẫn ngắn (`/nhan-dien`, `/truc-tiep`…). `.vercelignore` loại `training/`, `legacy/` khỏi bản deploy.
 
 ## Đăng nhập thật (Supabase – miễn phí)
 

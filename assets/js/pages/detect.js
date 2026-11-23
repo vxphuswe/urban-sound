@@ -224,12 +224,24 @@ $('#yt-capture').addEventListener('click', async () => {
 // ---------------------------------------------------------------- Phân tích
 function status(text, pct, hint) {
   $('#status').hidden = false;
+  $('#status-cancel').hidden = false;
   $('#status-text').textContent = text;
   $('#status-bar').style.width = `${pct ?? 0}%`;
   if (hint !== undefined) $('#status-hint').textContent = hint;
 }
 
+let runSeq = 0;
+$('#status-cancel').addEventListener('click', () => {
+  runSeq++;
+  state.abort?.abort();
+  $('#status').hidden = true;
+  toast('Đã huỷ. Mô hình vẫn tiếp tục tải ngầm để lần sau nhanh hơn.');
+});
+
 async function run(blob, { name, source }) {
+  const my = ++runSeq;
+  state.abort = new AbortController();
+  const alive = () => my === runSeq;
   state.name = name; state.source = source; state.chunks = [];
   $('#result').innerHTML = '';
   $('#tech').hidden = true;
@@ -239,12 +251,15 @@ async function run(blob, { name, source }) {
     const { wave } = await decodeToMono16k(blob);
     state.wave = wave;
     if (wave.length < 16000 * 0.3) throw new Error('Âm thanh quá ngắn (cần ít nhất nửa giây).');
-    await loadClassifier((t, p) => status(t, p * 0.4));
+    await loadClassifier((t, p) => alive() && status(t, p * 0.4));
+    if (!alive()) return;
     const { result, meta } = await analyzeWave(wave, {
+      signal: state.abort.signal,
       useDenoise: $('#opt-denoise').checked,
       sensitivity: $('#opt-sens').value,
-      onProgress: (t, p) => status(t, 40 + p * 0.6, ''),
+      onProgress: (t, p) => alive() && status(t, 40 + p * 0.6, ''),
     });
+    if (!alive()) return;
     state.analysis = { result, meta };
     $('#status').hidden = true;
     const lv = levelStats(wave);
@@ -258,9 +273,11 @@ async function run(blob, { name, source }) {
     bindResultActions();
     $('#tr-run').disabled = false;
     const speechy = [result.top, ...result.alternatives].some((a) => a && SPEECHY.has(a.id) && a.conf >= 35);
+    $('#phien-am').hidden = false;
     if ($('#opt-asr').checked && speechy) runTranscribe();
-    else if (!speechy) $('#tr-out').innerHTML = `<div class="empty">${icon('info', { size: 30 })}Không phát hiện rõ giọng nói trong đoạn này. Bạn vẫn có thể bấm “Phiên âm” để thử.</div>`;
+    else if (!speechy) $('#tr-out').innerHTML = `<div class="empty">${icon('info', { size: 30 })}Đoạn này không có người nói rõ ràng nên không cần chuyển thành chữ. Nếu vẫn muốn thử, bấm “Phiên âm”.</div>`;
   } catch (e) {
+    if (!alive() || e.name === 'AbortError') return;
     console.error(e);
     $('#status').hidden = true;
     $('#result').innerHTML = `<div class="banner warn" data-tone="red"><span class="b-ic">${icon('alert', { size: 22 })}</span><div><b>Không phân tích được</b><p>${esc(e.message)}</p></div></div>`;

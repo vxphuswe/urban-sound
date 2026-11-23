@@ -95,3 +95,40 @@ test('lọc tạp âm giảm nhiễu đều nhưng giữ tiếng sủa ngắn', 
   assert.ok(barkBefore - barkAfter < 2, `tiếng sủa giảm ${barkBefore - barkAfter} dB`);
   assert.ok(reductionDb > 0);
 });
+
+import { mergeHead } from '../assets/js/analysis.js';
+
+test('head không được biến tiếng người nói thành "mèo"', () => {
+  const yam = { speech: 0.82, cat: 0.02, dog: 0.01 };
+  const head = { cat: 0.77 };                      // head không có lớp tiếng nói nên đoán bừa "mèo"
+  const out = mergeHead(yam, head, new Set(['cat', 'dog', 'khac']), 0.7);
+  assert.equal(out.cat, 0.02);
+});
+
+test('head chỉ tăng nhóm có sẵn khi YAMNet cũng thấy dấu hiệu', () => {
+  const known = new Set(['dog', 'cat']);
+  assert.equal(mergeHead({ dog: 0.01, cat: 0 }, { dog: 0.8 }, known, 0.7).dog, 0.01);
+  assert.ok(Math.abs(mergeHead({ dog: 0.2, cat: 0 }, { dog: 0.8 }, known, 0.7).dog - 0.72) < 1e-9);
+  assert.equal(mergeHead({ dog: 0.2 }, { dog: 0.5 }, known, 0.7).dog, 0.2); // dưới ngưỡng tin cậy
+});
+
+test('nhóm mới chỉ head biết (tiếng mõ) vẫn được dùng', () => {
+  const out = mergeHead({ speech: 0.1, bell: 0.2 }, { tieng_mo: 0.9 }, new Set(['tieng_mo']), 0.7);
+  assert.ok(out.tieng_mo > 0.8);
+});
+
+test('bỏ phiếu: chấp nhận ngắt quãng, xác nhận ngay khi rất chắc', () => {
+  const st = new LiveStabilizer({ threshold: 0.28, streak: 2, strong: 0.6 });
+  st.push({ speech: 0.4 }, true, 0, { speech: 0.5 });
+  st.push({ speech: 0.1 }, true, 0.5, { speech: 0.12 });            // ngắt một nhịp
+  const o = st.push({ speech: 0.4 }, true, 1, { speech: 0.5 });     // 2/3 phiếu
+  assert.equal(o.confirmed?.id, 'speech');
+  const st2 = new LiveStabilizer({ threshold: 0.28, streak: 3, strong: 0.6 });
+  assert.equal(st2.push({ dog: 0.8 }, true, 0, { dog: 0.75 }).confirmed?.id, 'dog');
+});
+
+test('bỏ qua nhóm đang bị chặn (còi báo của chính web)', () => {
+  const st = new LiveStabilizer({ threshold: 0.28, streak: 1 });
+  const o = st.push({ alarm: 0.9, speech: 0.3 }, true, 0, { alarm: 0.9, speech: 0.35 }, new Set(['alarm']));
+  assert.equal(o.confirmed?.id, 'speech');
+});

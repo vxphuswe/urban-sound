@@ -23,7 +23,6 @@
       <span class="eyebrow">Nhận diện âm thanh <span class="sep">/</span> Phiên âm</span>
       <h1>Đây là tiếng gì?</h1>
       <p>Tải lên file âm thanh, video hoặc ghi âm trực tiếp. Urban Sound cho bạn biết đó là tiếng gì, ồn cỡ nào và lời nói trong đó.</p>
-      <div id="tool-tabs"></div>
     </section>
 
     <div class="container tool">
@@ -95,7 +94,7 @@
 
           <div class="options" style="margin-top:18px">
             <label class="switch"><input type="checkbox" id="opt-denoise" checked> Lọc tạp âm nền</label>
-            <label class="switch"><input type="checkbox" id="opt-asr" checked> Tự phiên âm khi có lời nói</label>
+            <label class="switch" title="Chỉ chạy khi đoạn âm thanh có người nói"><input type="checkbox" id="opt-asr" checked> Có người nói thì chuyển lời thành chữ</label>
             <span class="spacer"></span>
             <label class="row" style="gap:8px">Độ nhạy
               <select class="select" id="opt-sens">
@@ -113,6 +112,7 @@
             <b id="status-text">Đang chuẩn bị…</b>
             <div class="progress"><i id="status-bar"></i></div>
             <small class="muted" id="status-hint">Lần đầu cần tải mô hình (~15 MB). Những lần sau sẽ nhanh hơn nhiều.</small>
+            <button class="btn btn-sm" id="status-cancel" type="button" style="justify-self:center;margin-top:4px"><span data-icon="x" data-size="16"></span>Huỷ</button>
           </div>
         </section>
 
@@ -129,9 +129,9 @@
           <div class="tl-list" id="tl-list"></div>
         </section>
 
-        <section class="card" id="phien-am">
+        <section class="card" id="phien-am" hidden>
           <div class="card-title">
-            <h3 class="row" style="gap:8px"><span data-icon="text"></span> Phiên âm lời nói thành văn bản</h3>
+            <div><h3 class="row" style="gap:8px;margin:0"><span data-icon="text"></span> Lời nói trong đoạn âm thanh</h3><small class="muted">Phần phụ – chỉ dùng khi có người nói (họp, tiếng rao, video). Nhận diện âm thanh ở trên không cần bước này.</small></div>
             <div class="row" style="gap:8px">
               <button class="btn btn-ghost btn-sm" id="tr-copy" type="button" disabled><span data-icon="copy" data-size="16"></span>Sao chép</button>
               <button class="btn btn-ghost btn-sm" id="tr-txt" type="button" disabled><span data-icon="download" data-size="16"></span>.txt</button>

@@ -4,7 +4,7 @@
 import { CONFIG } from './config.js';
 import { GROUPS, GROUP_BY_ID, buildGroupIndex } from './categories.js';
 import { denoise, frameLevels, rms, dbfs } from './dsp.js';
-import { analyzeClip, groupScores, FRAME_HOP, FRAME_WIN } from './analysis.js';
+import { analyzeClip, groupScores, mergeHead, FRAME_HOP, FRAME_WIN } from './analysis.js';
 
 export const SR = 16000;
 const MIN_SAMPLES = 15600;               // YAMNet cần tối thiểu ~0.975 s
@@ -80,7 +80,8 @@ async function loadHead() {
       const gid = c.group || c.id;
       if (!GROUP_BY_ID[gid]) custom[gid] = { id: gid, vi: c.vi || c.id, icon: c.icon || 'wave', kind: c.kind || 'people', weight: 1, names: [], custom: true };
     }
-    return { ...j, layers, custom, minConf: j.min_confidence ?? 0.6 };
+    const known = new Set(j.classes.map((c) => c.group || c.id));
+    return { ...j, layers, custom, known, minConf: Math.max(0.6, j.min_confidence ?? 0.7) };
   } catch {
     return null;
   }
@@ -116,7 +117,7 @@ function headFramesFrom(emb, nFrames) {
     const p = headForward(S.head, emb.subarray(f * 1024, (f + 1) * 1024));
     const g = {};
     S.head.classes.forEach((c, i) => {
-      if (p[i] < S.head.minConf * 0.5) return;
+      if (p[i] < 0.2) return;
       const gid = c.group || c.id;
       g[gid] = Math.max(g[gid] || 0, p[i]);
     });
@@ -241,7 +242,8 @@ function concat(parts, total) {
  * Phân tích một đoạn âm thanh hoàn chỉnh (file, ghi âm, video).
  * @returns {Promise<{result, meta}>}
  */
-export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, sensitivity = 'medium', onProgress } = {}) {
+export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, sensitivity = 'medium', onProgress, signal } = {}) {
+  const check = () => { if (signal?.aborted) throw new DOMException('Đã huỷ', 'AbortError'); };
   await loadClassifier();
   const maxLen = CONFIG.MAX_ANALYZE_SEC * SR;
   const truncated = wave.length > maxLen;
@@ -249,13 +251,16 @@ export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, s
   const t0 = performance.now();
 
   onProgress?.('Đang nghe âm thanh…', 10);
-  const a = await runYamnet(x, (p) => onProgress?.('Đang nghe âm thanh…', 10 + p * (useDenoise ? 40 : 80)));
+  check();
+  const a = await runYamnet(x, (p) => { check(); onProgress?.('Đang nghe âm thanh…', 10 + p * (useDenoise ? 40 : 80)); });
+  check();
   let b = null, den = null;
   if (useDenoise) {
     onProgress?.('Đang lọc tạp âm nền…', 52);
     await new Promise((r) => setTimeout(r, 0));
     den = denoise(x);
-    b = await runYamnet(den.y, (p) => onProgress?.('Đang nghe lại sau khi lọc…', 55 + p * 35));
+    check();
+    b = await runYamnet(den.y, (p) => { check(); onProgress?.('Đang nghe lại sau khi lọc…', 55 + p * 35); });
   }
   const nFrames = Math.min(a.nFrames, b ? b.nFrames : Infinity);
   const levels = frameLevels(x, SR, FRAME_WIN, FRAME_HOP, nFrames);
@@ -265,6 +270,7 @@ export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, s
     scores: a.scores, scoresDen: b ? b.scores : null, nFrames, nClasses: a.nClasses, levels,
     groupIndex: S.groupIndex, classNames: S.classNames, threshold: sens.threshold,
     headFrames: headFramesFrom(a.emb, nFrames), customGroups: S.customGroups,
+    headKnown: S.head?.known, headMinConf: S.head?.minConf,
   });
   return {
     result,
@@ -279,23 +285,34 @@ export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, s
  * Nhận diện nhanh cho chế độ trực tiếp (đoạn ~1–2 s gần nhất).
  * Trả về điểm nhóm (thô và có trọng số) – độ ổn định xử lý bởi LiveStabilizer.
  */
-export async function classifyLive(wave, { useDenoise = true } = {}) {
+export async function classifyLive(wave, { useDenoise = false } = {}) {
   await loadClassifier();
+  const t0 = performance.now();
   const a = await runYamnet(wave);
   let b = null;
   if (useDenoise && !S.demo) b = await runYamnet(denoise(wave).y);
+  const hf = headFramesFrom(a.emb, a.nFrames);
   const raw = {};
   for (let f = 0; f < a.nFrames; f++) {
-    const g = groupScores(a.scores, f * a.nClasses, S.groupIndex);
-    const gd = b && f < b.nFrames ? groupScores(b.scores, f * b.nClasses, S.groupIndex) : null;
-    for (const id in g) raw[id] = Math.max(raw[id] || 0, g[id], gd ? gd[id] : 0);
+    let g = groupScores(a.scores, f * a.nClasses, S.groupIndex);
+    if (b && f < b.nFrames) {
+      const gd = groupScores(b.scores, f * b.nClasses, S.groupIndex);
+      for (const id in g) g[id] = Math.max(g[id], gd[id]);
+    }
+    if (hf) g = mergeHead(g, hf[f], S.head.known, S.head.minConf);
+    for (const id in g) raw[id] = Math.max(raw[id] || 0, g[id]);
   }
-  const hf = headFramesFrom(a.emb, a.nFrames);
-  if (hf) for (const fr of hf) for (const [id, v] of Object.entries(fr)) raw[id] = Math.max(raw[id] || 0, v * 0.9);
   const weighted = {};
   const all = { ...GROUP_BY_ID, ...S.customGroups };
   for (const id in raw) weighted[id] = raw[id] * (all[id]?.weight ?? 1);
-  return { raw, weighted, level: dbfs(rms(wave)) };
+  // 5 lớp YAMNet thô cao nhất (cho phần "chi tiết")
+  let top = [];
+  if (!S.demo && S.classNames) {
+    const C = a.nClasses, m = new Float32Array(C);
+    for (let f = 0; f < a.nFrames; f++) for (let c = 0; c < C; c++) m[c] = Math.max(m[c], a.scores[f * C + c]);
+    top = Array.from(m.keys()).sort((x, y) => m[y] - m[x]).slice(0, 5).map((i) => ({ name: S.classNames[i], score: m[i] }));
+  }
+  return { raw, weighted, level: dbfs(rms(wave)), ms: Math.round(performance.now() - t0), top };
 }
 
 export function groupDef(id) {

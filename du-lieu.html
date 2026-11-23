@@ -44,6 +44,7 @@
               <div class="rec-time" id="d-time">00:00</div>
               <label class="row" style="gap:8px;font-size:.9rem">Độ dài mỗi mẫu
                 <select class="select" id="d-len"><option value="3">3 giây</option><option value="5" selected>5 giây</option><option value="10">10 giây</option></select></label>
+              <label class="switch" style="font-size:.88rem"><input type="checkbox" id="d-continuous"> Ghi liên tục nhiều mẫu</label>
             </div>
             <label class="dropzone" style="padding:28px 16px">
               <input type="file" id="d-files" multiple hidden accept="audio/*,video/*">
@@ -52,7 +53,7 @@
               <p>Tự cắt thành đoạn theo độ dài đã chọn</p>
             </label>
           </div>
-          <p class="muted" style="font-size:.88rem;margin:12px 0 0">Khi đang ghi, mỗi khi đủ độ dài một mẫu được tạo tự động. Đoạn quá yên lặng sẽ bị bỏ qua (trừ nhãn <span class="mono">khac</span>).</p>
+          <p class="muted" style="font-size:.88rem;margin:12px 0 0">Bấm nút để ghi một mẫu: đủ độ dài sẽ <b>tự dừng và để AI nghe thử</b> – bạn biết ngay mô hình hiện tại nhận ra gì. Bật “Ghi liên tục” để thu nhiều mẫu liền nhau. Đoạn quá yên lặng sẽ bị bỏ qua (trừ nhãn <span class="mono">khac</span>).</p>
         </section>
 
         <section class="card">

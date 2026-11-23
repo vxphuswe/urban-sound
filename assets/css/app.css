@@ -452,7 +452,6 @@ table.simple td.num { font-family: var(--mono); text-align: right; }
 .stage-center { display: grid; place-items: center; text-align: center; gap: 10px; padding: 70px 20px 140px; position: relative; z-index: 2; }
 .stage-center .live-label { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 700; }
 .stage-center .live-sub { color: var(--muted); }
-.stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .35; z-index: 0; }
 .stage canvas.spec { position: absolute; left: 0; right: 0; bottom: 0; height: 110px; width: 100%; z-index: 1; opacity: .75; }
 .controls { display: flex; justify-content: center; gap: 12px; padding: 14px; }
 .ctl { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); position: relative; transition: background .15s, transform .12s; }
@@ -476,6 +475,47 @@ table.simple td.num { font-family: var(--mono); text-align: right; }
 .sens button b { font-size: .92rem; } .sens button small { color: var(--muted); font-size: .75rem; }
 .sens button.on { border-color: var(--accent); background: var(--accent-soft); }
 .sens button.on b { color: var(--accent); }
+
+/* Trạng thái, xác suất, phụ đề, dòng thời gian, báo động (trang Trực tiếp) */
+.status-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: color-mix(in srgb, var(--bg) 70%, transparent); border: 1px solid var(--line-2); backdrop-filter: blur(8px); }
+.status-chip .led { width: 9px; height: 9px; border-radius: 50%; background: var(--gray); }
+.status-chip[data-state="loading"] .led, .status-chip[data-state="processing"] .led { background: var(--amber); animation: blink .8s infinite; }
+.status-chip[data-state="listening"] .led { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 30%, transparent); animation: blink 1.6s infinite; }
+.status-chip[data-state="detected"] { border-color: var(--accent); color: var(--accent); }
+.status-chip[data-state="detected"] .led { background: var(--accent); }
+.status-chip[data-state="muted"] .led, .status-chip[data-state="error"] .led { background: var(--red); }
+.status-chip[data-state="error"] { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, transparent); }
+.prob-list { display: grid; gap: 10px; }
+.prob-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font-size: .9rem; }
+.prob-row .dot { width: 28px; height: 28px; border-radius: 8px; }
+.prob-row .pname { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.prob-row .pname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prob-row .bar { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.prob-row .bar i { display: block; height: 100%; border-radius: inherit; background: var(--tone, var(--accent)); transition: width .35s var(--ease); }
+.prob-row .mono { text-align: right; color: var(--muted); font-size: .82rem; }
+.prob-row.top .pname b { color: var(--tone); }
+.live-cc { position: absolute; left: 16px; right: 16px; bottom: 122px; z-index: 3; padding: 12px 16px; border-radius: 14px; background: rgba(0, 0, 0, .62); color: #fff; font-size: 1.05rem; line-height: 1.5; backdrop-filter: blur(6px); max-height: 120px; overflow: hidden; }
+.live-cc .cc-tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.65); margin-bottom: 4px; }
+.live-cc .interim { color: rgba(255, 255, 255, .6); }
+.live-timeline { width: 100%; height: 44px; border-radius: 10px; background: var(--surface-2); }
+.tl-axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: .7rem; color: var(--muted); margin-top: 6px; }
+.sens-4 { grid-template-columns: repeat(4, 1fr); }
+.live-cards { gap: 20px; }
+.alarm-overlay { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--red) 28%, rgba(0, 0, 0, .75)); animation: alarm-bg 1s ease-in-out infinite; }
+.alarm-overlay.warn { background: color-mix(in srgb, var(--orange) 22%, rgba(0, 0, 0, .75)); }
+@keyframes alarm-bg { 50% { background-color: color-mix(in srgb, var(--red) 45%, rgba(0, 0, 0, .7)); } }
+.alarm-overlay.warn { animation: none; }
+.alarm-box { width: min(560px, 100%); text-align: center; padding: 36px 28px; border-radius: 24px; background: var(--surface); border: 3px solid var(--red); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+.alarm-overlay.warn .alarm-box { border-color: var(--orange); }
+.alarm-ic { width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 28px; display: grid; place-items: center; background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); animation: shake 1s ease-in-out infinite; }
+.alarm-overlay.warn .alarm-ic { color: var(--orange); background: color-mix(in srgb, var(--orange) 18%, transparent); }
+.alarm-kicker { font-size: .8rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+.alarm-overlay.warn .alarm-kicker { color: var(--orange); }
+.alarm-box h2 { font-size: clamp(1.5rem, 4vw, 2.1rem); margin: 6px 0; }
+.alarm-value { font-size: 3rem; font-weight: 700; margin: 6px 0 10px; }
+.alarm-box p { color: var(--text-2); }
+.alarm-ok { background: var(--red); color: #fff; border-color: transparent; }
+.alarm-overlay.warn .alarm-ok { background: var(--orange); }
 
 /* Đồng hồ đo dB */
 .gauge-wrap { display: grid; place-items: center; padding: 24px; }
@@ -613,6 +653,13 @@ table.simple td.num { font-family: var(--mono); text-align: right; }
   .show-sm { display: grid; }
 }
 @media (max-width: 640px) {
+  .nav-wrap { gap: 10px; }
+  .nav-right { gap: 2px; }
+  .nav-right .btn-sm { padding: 0 10px; }
+  .brand { font-size: 1.02rem; gap: 8px; }
+  .sens-4 { grid-template-columns: repeat(2, 1fr); }
+  .live-cc { bottom: 100px; font-size: .95rem; }
+  .alarm-value { font-size: 2.3rem; }
   .link-form { flex-direction: column; }
   .qg-steps { grid-template-columns: 1fr; }
   .qg summary .link { margin-left: 0; }

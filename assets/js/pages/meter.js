@@ -12,10 +12,14 @@ const gv = $('#g-val');
 gv.style.strokeDasharray = ARC;
 gv.style.strokeDashoffset = ARC;
 
-const S = { mic: null, run: false, hist: [], all: [], t0: 0, smooth: null, last: null };
+const S = { mic: null, run: false, hist: [], all: [], t0: 0, smooth: null, last: null, started: false, paused: 0, pauseAt: 0 };
 
 $('#m-start').addEventListener('click', () => (S.run ? stop() : start()));
-$('#m-reset').addEventListener('click', () => { S.all = []; S.hist = []; S.t0 = performance.now(); updateStats(); });
+$('#m-reset').addEventListener('click', () => {
+  S.all = []; S.hist = []; S.t0 = performance.now(); S.paused = 0; S.pauseAt = S.run ? 0 : performance.now();
+  updateStats(); drawChart();
+  toast('Đã xoá số liệu, bắt đầu đo lại.');
+});
 
 async function start() {
   S.mic = new LiveMic({ seconds: 1, onBlock: (db) => { S.smooth = S.smooth == null ? db : 0.8 * S.smooth + 0.2 * db; S.all.push(db); } });
@@ -24,7 +28,10 @@ async function start() {
   } catch (e) {
     return toast(micErrorMessage(e), { tone: 'error', ms: 6000 });
   }
-  S.run = true; S.t0 = performance.now(); S.all = []; S.hist = [];
+  // "Đo tiếp" giữ nguyên số liệu cũ; chỉ nút "Đo lại từ đầu" mới xoá
+  S.run = true;
+  if (!S.started) { S.t0 = performance.now(); S.all = []; S.hist = []; S.started = true; S.paused = 0; }
+  else if (S.pauseAt) { S.paused += performance.now() - S.pauseAt; S.pauseAt = 0; }
   $('#m-start').innerHTML = `${icon('stop', { size: 20 })}Dừng đo`;
   $('#m-start').classList.remove('btn-primary'); $('#m-start').classList.add('btn-danger');
   $('#m-reset').disabled = false;
@@ -33,6 +40,7 @@ async function start() {
 
 function stop() {
   S.run = false;
+  S.pauseAt = performance.now();
   S.mic?.stop();
   $('#m-start').innerHTML = `${icon('mic', { size: 20 })}Đo tiếp`;
   $('#m-start').classList.add('btn-primary'); $('#m-start').classList.remove('btn-danger');
@@ -74,7 +82,7 @@ function updateStats() {
   $('#s-min').textContent = Math.round(mn);
   $('#s-avg').textContent = Math.round(avg);
   $('#s-max').textContent = Math.round(mx);
-  const sec = (performance.now() - S.t0) / 1000;
+  const sec = ((S.pauseAt || performance.now()) - S.t0 - (S.paused || 0)) / 1000;
   $('#s-time').textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
   $('#m-health').innerHTML = healthBanner(avg);
 }

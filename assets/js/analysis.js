@@ -26,6 +26,36 @@ export function confidenceWord(pct) {
   return 'Chưa chắc chắn';
 }
 
+/**
+ * Kết hợp mô hình nhóm tự train (head) với YAMNet cho một khung – chống lỗi "ép vào lớp đã biết".
+ * Head chỉ biết các lớp đã train (không có tiếng người nói, âm nhạc…). Nếu cứ tin head, nói chuyện
+ * sẽ bị gán thành "mèo kêu". Quy tắc:
+ *  1. Chỉ dùng xác suất head >= minConf.
+ *  2. Nếu YAMNet đang nghe rõ một nhóm mà head KHÔNG biết (ví dụ tiếng nói ≥ 0.35) và đủ mạnh → bỏ head ở khung này.
+ *  3. Với nhóm có sẵn trong YAMNet (chó, mèo…), head chỉ được tăng điểm khi YAMNet cũng thấy dấu hiệu (≥ 0.05),
+ *     trừ khi head cực chắc (≥ 0.95).
+ *  4. Nhóm mới chỉ head biết (tiếng rao, mõ…) dùng trực tiếp khi head ≥ minConf.
+ */
+export function mergeHead(yam, head, headKnown, minConf = 0.7) {
+  const out = { ...yam };
+  if (!head) return out;
+  let unknownMax = 0;
+  for (const [id, v] of Object.entries(yam)) {
+    if (headKnown.has(id) || AMBIENT_IDS.has(id) || id === 'noise' || id === 'silence') continue;
+    if (v > unknownMax) unknownMax = v;
+  }
+  let headTop = 0;
+  for (const v of Object.values(head)) headTop = Math.max(headTop, v);
+  if (unknownMax >= 0.35 && unknownMax >= headTop * 0.6) return out;
+  for (const [id, p] of Object.entries(head)) {
+    if (p < minConf) continue;
+    const builtin = id in yam;
+    if (builtin && (yam[id] || 0) < 0.05 && p < 0.95) continue;
+    out[id] = Math.max(out[id] || 0, p * 0.9);
+  }
+  return out;
+}
+
 /** Điểm từng nhóm của một khung: max điểm các lớp thành viên. */
 export function groupScores(scores, offset, groupIndex) {
   const out = {};
@@ -86,12 +116,11 @@ export function analyzeClip(p) {
       const gd = groupScores(scoresDen, f * C, groupIndex);
       for (const id in g) if (!AMBIENT_IDS.has(id)) g[id] = Math.max(g[id], gd[id]);
     }
-    if (p.headFrames && p.headFrames[f]) {
-      for (const [id, v] of Object.entries(p.headFrames[f])) g[id] = Math.max(g[id] || 0, v * 0.9);
-    }
-    raw[f] = g;
+    const merged = p.headFrames && p.headFrames[f] ? mergeHead(g, p.headFrames[f], p.headKnown || new Set(Object.keys(p.headFrames[f])), p.headMinConf ?? 0.7) : g;
+    raw[f] = merged;
+    const g2 = merged;
     const w = {};
-    for (const id in g) w[id] = g[id] * (byId[id]?.weight ?? 1);
+    for (const id in g2) w[id] = g2[id] * (byId[id]?.weight ?? 1);
     weighted[f] = w;
   }
 
@@ -211,47 +240,58 @@ function topId(w, ids) {
 }
 
 /**
- * Bộ ổn định cho chế độ trực tiếp: nhận điểm nhóm mỗi nhịp, trả về sự kiện đã xác nhận.
- * Dùng trung bình trượt mũ + yêu cầu xuất hiện liên tiếp `streak` lần.
+ * Bộ ổn định cho chế độ trực tiếp (bỏ phiếu trên các nhịp gần nhất).
+ * - Ứng viên: nhóm có điểm (đã trọng số) cao nhất trong nhịp và ≥ ngưỡng.
+ * - Xác nhận: xuất hiện ít nhất `streak` lần trong `streak + 1` nhịp gần nhất (không bắt buộc liên tiếp),
+ *   hoặc ngay lập tức nếu điểm thô rất cao (≥ strong).
+ * - Giữ kết quả thêm `hold` giây sau lần cuối được ủng hộ để không nhấp nháy.
+ * - Cùng một nhóm chỉ "báo" lại sau `cooldown` giây.
  */
 export class LiveStabilizer {
-  constructor({ threshold = 0.28, streak = 2, cooldown = 4 } = {}) {
-    this.threshold = threshold; this.streak = streak; this.cooldown = cooldown;
-    this.ema = {}; this.count = {}; this.lastFire = {}; this.current = null;
+  constructor({ threshold = 0.28, streak = 2, cooldown = 4, strong = 0.6, hold = 2 } = {}) {
+    Object.assign(this, { threshold, streak, cooldown, strong, hold });
+    this.reset();
   }
+  reset() { this.history = []; this.lastFire = {}; this.current = null; this.lastSeen = {}; }
   setSensitivity({ threshold, streak }) { this.threshold = threshold; this.streak = streak; }
+
   /**
    * @param {object} weighted  điểm nhóm có trọng số của nhịp hiện tại
-   * @param {boolean} active   nhịp này có vượt cổng năng lượng không
+   * @param {boolean} active   nhịp này có âm thanh (vượt cổng năng lượng) không
    * @param {number} t         thời điểm (giây)
+   * @param {object} raw       điểm thô (để xét "rất chắc chắn"); mặc định = weighted
+   * @param {Set} ignore       nhóm tạm bỏ qua (ví dụ khi web đang phát còi báo động)
    */
-  push(weighted, active, t) {
-    const out = { candidate: null, confirmed: null, fired: null };
+  push(weighted, active, t, raw = weighted, ignore = new Set()) {
     let best = null, bv = 0;
-    for (const [id, v] of Object.entries(weighted)) {
-      if (AMBIENT_IDS.has(id) || id === 'silence' || id === 'noise') continue;
-      const prev = this.ema[id];
-      const e = active ? (prev == null ? v : 0.5 * prev + 0.5 * v) : 0.6 * (prev ?? 0);
-      this.ema[id] = e;
-      if (e > bv) { bv = e; best = id; }
-    }
-    for (const id of Object.keys(this.count)) if (id !== best) this.count[id] = 0;
-    if (best && bv >= this.threshold && active) {
-      this.count[best] = (this.count[best] || 0) + 1;
-      out.candidate = { id: best, score: bv };
-      if (this.count[best] >= this.streak) {
-        out.confirmed = { id: best, score: bv };
-        if (!this.lastFire[best] || t - this.lastFire[best] > this.cooldown) {
-          this.lastFire[best] = t;
-          out.fired = out.confirmed;
-        }
-        this.current = out.confirmed;
+    if (active) {
+      for (const [id, v] of Object.entries(weighted)) {
+        if (AMBIENT_IDS.has(id) || id === 'silence' || id === 'noise' || ignore.has(id)) continue;
+        if (v > bv) { bv = v; best = id; }
       }
-    } else if (best && bv < this.threshold * 0.6) {
+    }
+    const top = best && bv >= this.threshold ? best : null;
+    this.history.push({ top, score: bv, t });
+    const win = this.streak + 1;
+    if (this.history.length > win) this.history.splice(0, this.history.length - win);
+    const votes = top ? this.history.filter((h) => h.top === top).length : 0;
+    const strongHit = top && (raw[top] || 0) >= this.strong;
+
+    const out = { candidate: top ? { id: top, score: bv } : null, confirmed: null, fired: null, votes, need: this.streak };
+    if (top && (votes >= this.streak || strongHit)) {
+      out.confirmed = { id: top, score: bv };
+      this.current = out.confirmed;
+      this.lastSeen[top] = t;
+      if (this.lastFire[top] == null || t - this.lastFire[top] >= this.cooldown) {
+        this.lastFire[top] = t;
+        out.fired = out.confirmed;
+      }
+    } else if (this.current && t - (this.lastSeen[this.current.id] ?? -Infinity) > this.hold) {
       this.current = null;
+    } else if (this.current && top === this.current.id) {
+      this.lastSeen[top] = t;
     }
     out.current = this.current;
-    out.streakCount = best ? this.count[best] || 0 : 0;
     return out;
   }
 }
