@@ -1,4 +1,4 @@
-"""Tải mô hình YAMNet (bản TensorFlow.js) về models/yamnet/ để web tự phục vụ mô hình từ Vercel.
+﻿"""Tải mô hình YAMNet (bản TensorFlow.js) về models/yamnet/ để web tự phục vụ mô hình từ Vercel.
 
 Lý do: tải từ TF Hub/Kaggle ở Việt Nam đôi khi rất chậm ("đang tải mà lâu quá").
 Sau khi chạy script này và commit thư mục models/yamnet, web sẽ tải mô hình từ chính tên miền của bạn.
@@ -39,7 +39,7 @@ def main():
             for group in model["weightsManifest"]:
                 for p in group["paths"]:
                     print("  ", p, end=" … ", flush=True)
-                    data = get(f"{folder}{p}?tfjs-format=file").read()
+                    data = get(f"{base}/{p}?tfjs-format=file").read()
                     (OUT / p).write_bytes(data)
                     print(f"{len(data) / 1e6:.1f} MB")
             break
@@ -54,3 +54,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
