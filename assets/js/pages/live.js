@@ -619,9 +619,12 @@ $('#btn-cam').addEventListener('click', async () => {
   const b = $('#btn-cam');
   if (cam.on) { cam.stop(); afterCam(); return; }
   b.disabled = true;
-  try { await cam.start(); } catch (e) { toast(cameraErrorMessage(e), { tone: 'error', ms: 7000 }); }
+  let ok = false;
+  try { await cam.start(); ok = true; } catch (e) { toast(cameraErrorMessage(e), { tone: 'error', ms: 7000 }); }
   b.disabled = false;
   afterCam();
+  // Bật camera là bắt đầu nghe luôn: vừa xem hình vừa nhận diện âm thanh
+  if (ok && !S.running && !$('#btn-start').disabled) start();
 });
 
 $('#btn-flip').addEventListener('click', async () => {
