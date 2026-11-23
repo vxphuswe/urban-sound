@@ -203,3 +203,47 @@ export function encodeWav(wave, sr = TARGET_SR) {
   for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, wave[i])) * 0x7fff, true);
   return new Blob([buf], { type: 'audio/wav' });
 }
+
+/**
+ * Nghe âm thanh đang phát trong thẻ trình duyệt (ví dụ video YouTube nhúng) trong `seconds` giây.
+ * Dùng getDisplayMedia – người dùng phải chọn "Thẻ này" và bật "Chia sẻ âm thanh". Chrome/Edge máy tính.
+ */
+export async function captureTabAudio(seconds, { onStart, onTick } = {}) {
+  if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('Trình duyệt này không hỗ trợ nghe âm thanh từ thẻ. Hãy dùng Chrome hoặc Edge trên máy tính.');
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, suppressLocalAudioPlayback: false },
+      preferCurrentTab: true, selfBrowserSurface: 'include', systemAudio: 'include', surfaceSwitching: 'exclude',
+    });
+  } catch (e) {
+    if (e?.name === 'NotAllowedError') throw new Error('Bạn đã huỷ chia sẻ. Bấm lại và chọn "Thẻ này", nhớ bật "Chia sẻ âm thanh của thẻ".');
+    throw e;
+  }
+  const audio = stream.getAudioTracks();
+  stream.getVideoTracks().forEach((t) => t.stop());
+  if (!audio.length) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw new Error('Chưa có âm thanh: khi chia sẻ, hãy bật công tắc "Chia sẻ âm thanh của thẻ" (Share tab audio).');
+  }
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => window.MediaRecorder?.isTypeSupported?.(m)) || '';
+  const rec = new MediaRecorder(new MediaStream(audio), mime ? { mimeType: mime } : undefined);
+  const chunks = [];
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  const done = new Promise((res) => { rec.onstop = res; });
+  rec.start(250);
+  onStart?.();
+  const t0 = performance.now();
+  await new Promise((res) => {
+    const iv = setInterval(() => {
+      const left = seconds - (performance.now() - t0) / 1000;
+      onTick?.(Math.max(0, left));
+      if (left <= 0 || audio[0].readyState === 'ended') { clearInterval(iv); res(); }
+    }, 200);
+  });
+  if (rec.state !== 'inactive') rec.stop();
+  await done;
+  audio.forEach((t) => t.stop());
+  return new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+}

@@ -7,7 +7,7 @@ import { bandOf } from '../levels.js';
 
 initLayout();
 
-const SRC = { file: 'File âm thanh', video: 'Video', mic: 'Ghi âm', live: 'Trực tiếp' };
+const SRC = { file: 'File âm thanh', video: 'Video', mic: 'Ghi âm', live: 'Trực tiếp', link: 'Từ link' };
 let tab = 'all';
 let items = [];
 

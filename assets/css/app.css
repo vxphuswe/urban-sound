@@ -324,6 +324,18 @@ label.field { display: grid; gap: 6px; font-size: .88rem; font-weight: 600; colo
 .loading-box .spin { width: 46px; height: 46px; margin: 0 auto 4px; border-radius: 50%; border: 3px solid var(--surface-3); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------------------------------------------------------------- Nhập từ link */
+.link-form { display: flex; gap: 10px; }
+.link-form .input { flex: 1; height: 50px; font-size: 1rem; }
+.link-form .btn { height: 50px; }
+.link-examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; font-size: .85rem; }
+#yt-box { margin-top: 18px; }
+.yt-frame { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #000; border: 1px solid var(--line-2); }
+.yt-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.yt-status { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.yt-status .rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); animation: blink 1s infinite; flex: none; }
+.yt-steps { margin: 14px 0 0; padding-left: 20px; display: grid; gap: 6px; color: var(--text-2); font-size: .9rem; }
+
 /* ---------------------------------------------------------------- Thẻ kết quả */
 .result {
   --tone: var(--accent);
@@ -601,6 +613,7 @@ table.simple td.num { font-family: var(--mono); text-align: right; }
   .show-sm { display: grid; }
 }
 @media (max-width: 640px) {
+  .link-form { flex-direction: column; }
   .qg-steps { grid-template-columns: 1fr; }
   .qg summary .link { margin-left: 0; }
   .tool-tabs .lg { display: none; } .tool-tabs .sm { display: inline; }

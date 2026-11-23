@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import { initLayout, $, $$, esc, toast, hydrateIcons } from '../ui.js';
 import { icon } from '../icons.js';
-import { ACCEPT, decodeToMono16k, Recorder, levelStats, micErrorMessage } from '../audio.js';
+import { ACCEPT, decodeToMono16k, Recorder, levelStats, micErrorMessage, captureTabAudio } from '../audio.js';
 import { loadClassifier, analyzeWave, classifierInfo } from '../classifier.js';
 import { envelope } from '../dsp.js';
 import { resultCard, healthBanner, levelSummary, referenceList, highlightReference, kindTone, borderTone } from '../render.js';
@@ -21,14 +21,16 @@ $('#opt-denoise').checked = CONFIG.DENOISE_DEFAULT;
 
 // ---------------------------------------------------------------- Tab
 function selectTab(which) {
-  $('#tab-file').setAttribute('aria-selected', String(which === 'file'));
-  $('#tab-rec').setAttribute('aria-selected', String(which === 'rec'));
-  $('#panel-file').hidden = which !== 'file';
-  $('#panel-rec').hidden = which !== 'rec';
+  for (const t of ['file', 'rec', 'link']) {
+    $(`#tab-${t}`).setAttribute('aria-selected', String(which === t));
+    $(`#panel-${t}`).hidden = which !== t;
+  }
 }
 $('#tab-file').onclick = () => selectTab('file');
 $('#tab-rec').onclick = () => selectTab('rec');
+$('#tab-link').onclick = () => selectTab('link');
 if (location.hash === '#ghi-am') selectTab('rec');
+if (location.hash === '#tu-link') selectTab('link');
 
 // Tải sẵn mô hình trong nền để lần bấm đầu tiên nhanh hơn
 setTimeout(() => loadClassifier().catch(() => {}), 1200);
@@ -105,6 +107,117 @@ $('#rec-btn').addEventListener('click', async () => {
     const name = `Ghi âm ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
     setMedia(blob, 'audio');
     await run(blob, { name, source: 'mic' });
+  }
+});
+
+// ---------------------------------------------------------------- Từ link (YouTube hoặc file trực tiếp)
+function parseYouTube(raw) {
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.replace(/^www\.|^m\./, '');
+    let id = null;
+    if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+    else if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+      id = u.searchParams.get('v') || (u.pathname.match(/\/(shorts|embed|live|v)\/([\w-]{6,})/) || [])[2];
+    }
+    if (!id || !/^[\w-]{6,}$/.test(id)) return null;
+    const t = u.searchParams.get('t') || u.searchParams.get('start') || '0';
+    const m = String(t).match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/);
+    const start = m ? (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + (+(m[3] || 0)) : 0;
+    return { id, start };
+  } catch { return null; }
+}
+
+function directUrl(raw) {
+  const u = new URL(raw);
+  const drive = u.hostname === 'drive.google.com' && (u.pathname.match(/\/file\/d\/([\w-]+)/) || [])[1];
+  if (drive) return `https://drive.google.com/uc?export=download&id=${drive}`;
+  if (u.hostname.endsWith('dropbox.com')) { u.searchParams.delete('dl'); u.searchParams.set('raw', '1'); }
+  return u.href;
+}
+
+async function fetchAudio(url) {
+  const okType = (t) => /^(audio|video)\/|application\/(ogg|octet-stream)/i.test(t || '');
+  // 1) thử tải trực tiếp (được nếu máy chủ nguồn cho phép CORS, ví dụ Freesound, Wikimedia)
+  try {
+    const r = await fetch(url, { mode: 'cors' });
+    if (r.ok && okType(r.headers.get('content-type'))) return await r.blob();
+    if (r.ok && /text\/html/i.test(r.headers.get('content-type') || '')) throw Object.assign(new Error('html'), { html: true });
+  } catch (e) {
+    if (e.html) throw new Error('Link này là một trang web, không phải file âm thanh. Bấm chuột phải vào trình phát → "Sao chép địa chỉ âm thanh", hoặc dùng link YouTube.');
+  }
+  // 2) nhờ máy chủ Vercel tải hộ
+  const r = await fetch(`api/fetch-audio?url=${encodeURIComponent(url)}`);
+  if (r.status === 404 && !(r.headers.get('content-type') || '').includes('json')) {
+    throw new Error('Trang này chặn tải trực tiếp. Tính năng tải hộ chỉ chạy trên bản đã deploy lên Vercel. Bạn có thể tải file về máy rồi dùng thẻ "Tải file".');
+  }
+  if (!r.ok) {
+    let msg = 'Không tải được link.';
+    try { msg = (await r.json()).error || msg; } catch { /* bỏ qua */ }
+    throw new Error(msg);
+  }
+  return await r.blob();
+}
+
+let ytInfo = null;
+$('#link-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const raw = $('#link-input').value.trim();
+  if (!raw) return;
+  let url;
+  try { url = new URL(raw); } catch { return toast('Link chưa đúng. Link phải bắt đầu bằng http:// hoặc https://', { tone: 'error' }); }
+  const yt = parseYouTube(url.href);
+  if (yt) {
+    ytInfo = yt;
+    $('#yt-frame').src = `https://www.youtube-nocookie.com/embed/${yt.id}?enablejsapi=1&rel=0&start=${yt.start}&origin=${encodeURIComponent(location.origin)}`;
+    $('#yt-box').hidden = false;
+    $('#yt-status').hidden = true;
+    if (!navigator.mediaDevices?.getDisplayMedia) toast('Điện thoại không hỗ trợ nghe âm thanh từ video. Hãy mở trang trên Chrome/Edge máy tính.', { tone: 'error', ms: 7000 });
+    return;
+  }
+  $('#yt-box').hidden = true;
+  const btn = $('#link-btn');
+  btn.disabled = true;
+  const name = decodeURIComponent(url.pathname.split('/').pop() || url.hostname) || 'Âm thanh từ link';
+  try {
+    status('Đang tải âm thanh từ link…', 3, 'Link trực tiếp tối đa 4 MB.');
+    const blob = await fetchAudio(directUrl(url.href));
+    const isVideo = (blob.type || '').startsWith('video/');
+    setMedia(blob, isVideo ? 'video' : 'audio');
+    await run(blob, { name, source: 'link' });
+  } catch (err) {
+    $('#status').hidden = true;
+    toast(err.message, { tone: 'error', ms: 8000 });
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function ytCommand(func) {
+  $('#yt-frame').contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
+}
+
+$('#yt-capture').addEventListener('click', async () => {
+  if (!ytInfo) return;
+  const sec = Number($('#yt-sec').value);
+  const btn = $('#yt-capture');
+  const st = $('#yt-status');
+  btn.disabled = true;
+  try {
+    const blob = await captureTabAudio(sec, {
+      onStart: () => { ytCommand('playVideo'); st.hidden = false; },
+      onTick: (left) => { st.innerHTML = `<span class="rec-dot"></span>Đang nghe âm thanh video… còn ${Math.ceil(left)} giây`; },
+    });
+    ytCommand('pauseVideo');
+    st.innerHTML = `${icon('check', { size: 18 })} Đã nghe xong ${sec} giây – đang nhận diện…`;
+    setMedia(blob, 'audio');
+    await run(blob, { name: `YouTube ${ytInfo.id}`, source: 'link' });
+    st.hidden = true;
+  } catch (err) {
+    st.hidden = true;
+    toast(err.message, { tone: 'error', ms: 8000 });
+  } finally {
+    btn.disabled = false;
   }
 });
 
