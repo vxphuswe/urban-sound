@@ -4,7 +4,8 @@
 import { initLayout, $, $$, esc, toast, hydrateIcons } from '../ui.js';
 import { icon } from '../icons.js';
 import { GROUPS, GROUP_BY_ID } from '../categories.js';
-import { LiveMic, decodeToMono16k, encodeWav, micErrorMessage, TARGET_SR } from '../audio.js';
+import { LiveMic, decodeToMono16k, encodeWav, micErrorMessage, TARGET_SR, captureTabAudio } from '../audio.js';
+import { parseYouTube, directUrl, fetchAudio, ytCommand, ytEmbed } from '../linksource.js';
 import { rms, dbfs } from '../dsp.js';
 import { makeZip } from '../zip.js';
 import { analyzeWave, reloadPersonal } from '../classifier.js';
@@ -92,6 +93,7 @@ function renderTarget() {
   $('#dots').innerHTML = Array.from({ length: Math.max(g <= 10 ? g : 5, Math.min(n + 1, 10)) }, (_, i) => `<i class="${i < n ? 'on' : i === n ? 'next' : ''}"></i>`).join('') + (g > 10 ? `<span class="mono muted">${n}/${g}</span>` : '');
   if (!recording) $('#rec-status').innerHTML = n >= g ? `<b>Đã đủ ${g} mẫu.</b> Bấm "Xong, thử ngay" hoặc thu thêm cho chắc.` : `Mẫu <b>${n + 1}/${g}</b> · bấm nút rồi phát âm thanh gần micro`;
   $('#to-test').disabled = n < 1 || target.builtin;
+  $('#t-count').textContent = n ? `${n} mẫu đã lưu` : '';
   $('#to-test').textContent = n < 3 && !target.builtin ? `Xong, thử ngay (nên có ít nhất 3 mẫu)` : 'Xong, thử ngay';
   // danh sách mẫu của âm thanh này + chấm chất lượng
   const xs = mine();
@@ -193,21 +195,111 @@ async function saveSample(wave, source) {
   return true;
 }
 
-$('#t-files').addEventListener('change', async (e) => {
-  if (!target) return;
-  let n = 0;
-  for (const f of e.target.files) {
-    try {
-      const { wave } = await decodeToMono16k(f);
-      for (let a = 0; a < wave.length && n < 60; a += SEC * TARGET_SR) {
-        const seg = wave.slice(a, Math.min(wave.length, a + SEC * TARGET_SR));
-        if (seg.length >= TARGET_SR && await saveSample(seg, 'file')) n++;
-      }
-    } catch (err) { toast(`${f.name}: ${err.message}`, { tone: 'error' }); }
+// ------------------------------------------------------------------ Nguồn mẫu: ghi âm / file / link
+$$('#src-tabs [data-src]').forEach((b) => b.addEventListener('click', () => {
+  $$('#src-tabs [data-src]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+  $$('.src-pane').forEach((p) => (p.hidden = p.dataset.pane !== b.dataset.src));
+}));
+
+/**
+ * Tìm các đoạn 3 giây CÓ ÂM THANH RÕ trong một bản ghi dài: trượt cửa sổ, tính độ to,
+ * lấy những đoạn to hơn hẳn nền, không chồng lên nhau, to nhất trước.
+ */
+export function pickSegments(wave, sr = TARGET_SR, sec = SEC, max = 20) {
+  const win = Math.round(sec * sr), hop = Math.round(win / 2);
+  if (wave.length <= win) return dbfs(rms(wave)) > -55 ? [wave] : [];
+  const cand = [];
+  for (let a = 0; a + win <= wave.length; a += hop) cand.push({ a, db: dbfs(rms(wave, a, a + win)) });
+  const sorted = [...cand].map((c) => c.db).sort((x, y) => x - y);
+  const floor = sorted[Math.floor(sorted.length * 0.2)];
+  const top = sorted[sorted.length - 1];
+  // nhận đoạn to hơn nền rõ rệt HOẶC gần bằng đoạn to nhất (file toàn là âm thanh cần dạy)
+  const need = sorted.length > 4 ? Math.min(floor + 6, top - 8) : -50;
+  const out = [];
+  for (const c of [...cand].sort((x, y) => y.db - x.db)) {
+    if (out.length >= max || c.db < -50 || c.db < need) break;
+    if (out.some((o) => Math.abs(o.a - c.a) < win)) continue;
+    out.push(c);
   }
-  e.target.value = '';
-  toast(n ? `Đã thêm ${n} mẫu từ file.` : 'Không lấy được mẫu nào (file quá yên lặng?).', { tone: n ? 'success' : 'default' });
+  return out.sort((x, y) => x.a - y.a).map((c) => wave.slice(c.a, c.a + win));
+}
+
+function progress(html) { const el = $('#src-progress'); el.hidden = !html; el.innerHTML = html || ''; }
+
+async function importWave(wave, name) {
+  const segs = pickSegments(wave);
+  if (!segs.length) { toast(`${name}: không tìm thấy đoạn nào có âm thanh rõ.`, { tone: 'error' }); return 0; }
+  let n = 0;
+  for (const seg of segs) {
+    progress(`<span class="rec-dot"></span> ${esc(name)}: đang lưu mẫu ${n + 1}/${segs.length}…`);
+    if (await saveSample(seg, 'file')) n++;
+  }
+  return n;
+}
+
+async function importBlobs(list) {
+  if (!target) return;
+  let total = 0;
+  for (const { blob, name } of list) {
+    try {
+      progress(`<span class="rec-dot"></span> Đang đọc ${esc(name)}…`);
+      const { wave } = await decodeToMono16k(blob);
+      total += await importWave(wave, name);
+    } catch (err) { toast(`${name}: ${err.message}`, { tone: 'error', ms: 7000 }); }
+  }
+  progress('');
   renderTarget();
+  if (total) toast(`Đã thêm ${total} mẫu. Nghe lại bên dưới, mẫu nào sai thì xóa.`, { tone: 'success', ms: 5000 });
+  if (!target.builtin && mine().length >= GOAL) setTimeout(() => go(3), 1200);
+  return total;
+}
+
+$('#t-files').addEventListener('change', async (e) => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  await importBlobs(files.map((f) => ({ blob: f, name: f.name })));
+});
+const drop = $('#t-drop');
+['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('drag')));
+drop.addEventListener('drop', (e) => { e.preventDefault(); importBlobs([...e.dataTransfer.files].map((f) => ({ blob: f, name: f.name }))); });
+
+let ytInfo = null;
+$('#t-link-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const raw = $('#t-link').value.trim();
+  let url;
+  try { url = new URL(raw); } catch { return toast('Link chưa đúng, phải bắt đầu bằng http:// hoặc https://', { tone: 'error' }); }
+  const yt = parseYouTube(url.href);
+  $('#t-yt').hidden = !yt; $('#t-link-note').hidden = !!yt;
+  if (yt) {
+    ytInfo = yt;
+    $('#t-yt-frame').src = ytEmbed(yt);
+    if (!navigator.mediaDevices?.getDisplayMedia) toast('Điện thoại không nghe được âm thanh từ video YouTube. Hãy dùng Chrome/Edge trên máy tính, hoặc tải file về rồi chọn "File âm thanh / video".', { tone: 'error', ms: 8000 });
+    return;
+  }
+  const btn = $('#t-link-btn'); btn.disabled = true;
+  try {
+    progress('<span class="rec-dot"></span> Đang tải âm thanh từ link…');
+    const blob = await fetchAudio(directUrl(url.href));
+    await importBlobs([{ blob, name: decodeURIComponent(url.pathname.split('/').pop() || url.hostname) }]);
+  } catch (err) { progress(''); toast(err.message, { tone: 'error', ms: 8000 }); }
+  btn.disabled = false;
+});
+
+$('#t-yt-go').addEventListener('click', async () => {
+  if (!ytInfo) return;
+  const sec = Number($('#t-yt-sec').value), btn = $('#t-yt-go'), frame = $('#t-yt-frame');
+  btn.disabled = true;
+  try {
+    const blob = await captureTabAudio(sec, {
+      onStart: () => ytCommand(frame, 'playVideo'),
+      onTick: (left) => progress(`<span class="rec-dot"></span> Đang nghe âm thanh video… còn ${Math.ceil(left)} giây`),
+    });
+    ytCommand(frame, 'pauseVideo');
+    await importBlobs([{ blob, name: `YouTube ${ytInfo.id}` }]);
+  } catch (err) { progress(''); toast(err.message, { tone: 'error', ms: 8000 }); }
+  btn.disabled = false;
 });
 
 $('#to-test').addEventListener('click', () => go(3));
@@ -225,6 +317,13 @@ $('#test').addEventListener('click', async () => {
   const t0 = performance.now();
   await new Promise((res) => { const tick = () => { const p = (performance.now() - t0) / 3000; ring(fg, Math.min(1, p)); if (p >= 1) res(); else requestAnimationFrame(tick); }; tick(); });
   const wave = m.latest(3); m.stop(); ring(fg, 0);
+  await showTest(wave);
+  btn.classList.remove('active');
+});
+
+/** So khớp một đoạn âm thanh với các âm thanh đã dạy và hiện kết quả. */
+async function showTest(wave) {
+  const btn = $('#test');
   $('#test-status').textContent = 'Đang so sánh…';
   try {
     await reloadPersonal();
@@ -238,7 +337,15 @@ $('#test').addEventListener('click', async () => {
     setTimeout(() => btn.closest('.t-step').classList.remove('celebrate'), 1500);
   } catch (e) { $('#test-out').innerHTML = `<div class="test-miss">${esc(e.message)}</div>`; }
   $('#test-status').textContent = 'Bấm để thử lại';
-  btn.classList.remove('active');
+}
+$('#test-file').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    $('#test-status').textContent = `Đang đọc ${f.name}…`;
+    const { wave } = await decodeToMono16k(f);
+    await showTest(wave.length > 30 * TARGET_SR ? wave.subarray(0, 30 * TARGET_SR) : wave);
+  } catch (err) { toast(`${f.name}: ${err.message}`, { tone: 'error' }); }
 });
 $('#more').addEventListener('click', () => go(2));
 $('#another').addEventListener('click', () => { target = null; go(1); $('#nl-name').focus(); });

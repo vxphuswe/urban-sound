@@ -22,7 +22,7 @@
     <section class="page-head container">
       <span class="eyebrow">Âm thanh của tôi</span>
       <h1>Dạy AI nhận âm thanh của bạn</h1>
-      <p>Chuông cửa nhà bạn, tiếng rao quen, tiếng xe của bạn… Thu 5 lần, mỗi lần 3 giây. Mẫu được <b>tự lưu trên máy</b>, lần sau ở Trực tiếp hay Nhận diện, AI gọi đúng tên bạn đặt.</p>
+      <p>Chuông cửa nhà bạn, tiếng rao quen, tiếng xe của bạn… Ghi âm, tải file/video hoặc dán link. Cần khoảng 5 mẫu, mỗi mẫu 3 giây. Mẫu được <b>tự lưu trên máy</b>, lần sau ở Trực tiếp hay Nhận diện, AI gọi đúng tên bạn đặt.</p>
     </section>
 
     <div class="container tool">
@@ -30,7 +30,7 @@
         <section class="card teach" id="teach">
           <ol class="stepper" id="stepper">
             <li data-s="1" class="on"><i>1</i><span>Đặt tên</span></li>
-            <li data-s="2"><i>2</i><span>Thu 5 lần</span></li>
+            <li data-s="2"><i>2</i><span>Thêm 5 mẫu</span></li>
             <li data-s="3"><i>3</i><span>Thử ngay</span></li>
           </ol>
 
@@ -52,7 +52,41 @@
           <!-- Bước 2 -->
           <div class="t-step" data-step="2" hidden>
             <div class="t-target"><span class="t-ic" id="t-ic"></span><div><small>Đang dạy AI</small><b id="t-name"></b></div><button class="btn btn-ghost btn-sm" type="button" id="t-rename">Đổi</button></div>
-            <div class="rec-zone">
+            <div class="seg src-tabs" role="tablist" id="src-tabs">
+              <button role="tab" aria-selected="true" data-src="mic" type="button"><span data-icon="mic" data-size="16"></span>Ghi âm</button>
+              <button role="tab" aria-selected="false" data-src="file" type="button"><span data-icon="upload" data-size="16"></span>File âm thanh / video</button>
+              <button role="tab" aria-selected="false" data-src="link" type="button"><span data-icon="link" data-size="16"></span>Từ link</button>
+            </div>
+
+            <div class="src-pane" data-pane="file" hidden>
+              <label class="dropzone" id="t-drop">
+                <input type="file" id="t-files" multiple hidden accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.mp4,.mov,.webm,.3gp">
+                <span class="big-ic"><span data-icon="upload" data-size="28"></span></span>
+                <h3>Kéo thả hoặc chọn file</h3>
+                <p>MP3, M4A, WAV, MP4, MOV… chọn nhiều file một lần cũng được</p>
+              </label>
+              <p class="muted src-note">Web tự tìm những đoạn <b>có âm thanh rõ</b> trong file, cắt thành mẫu 3 giây và bỏ qua đoạn im lặng.</p>
+            </div>
+
+            <div class="src-pane" data-pane="link" hidden>
+              <form class="link-form" id="t-link-form">
+                <input class="input" id="t-link" type="url" inputmode="url" placeholder="Dán link YouTube, Google Drive, Dropbox hoặc link file .mp3/.wav…" aria-label="Link âm thanh">
+                <button class="btn btn-primary" type="submit" id="t-link-btn">Lấy âm thanh</button>
+              </form>
+              <div id="t-yt" hidden>
+                <div class="yt-frame"><iframe id="t-yt-frame" title="Video YouTube" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
+                <div class="row" style="margin-top:10px">
+                  <label class="row" style="gap:8px;font-size:.9rem">Nghe trong
+                    <select class="select select-sm" id="t-yt-sec"><option value="10">10 giây</option><option value="20" selected>20 giây</option><option value="30">30 giây</option></select></label>
+                  <button class="btn btn-primary btn-sm" type="button" id="t-yt-go"><span data-icon="ear" data-size="16"></span>Nghe video & lấy mẫu</button>
+                </div>
+                <p class="muted src-note">Tua video tới đoạn có âm thanh cần dạy rồi bấm nút. Trình duyệt sẽ hỏi chia sẻ: chọn <b>Thẻ này</b> và bật <b>Chia sẻ âm thanh</b>. Chỉ chạy trên Chrome/Edge máy tính.</p>
+              </div>
+              <p class="muted src-note" id="t-link-note">Link Drive/Dropbox cần để chế độ "Ai có link đều xem được". File tối đa 4 MB.</p>
+            </div>
+            <div class="src-progress" id="src-progress" hidden></div>
+
+            <div class="rec-zone src-pane" data-pane="mic">
               <button class="rec-ring" id="rec" type="button" aria-label="Thu mẫu">
                 <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rr-bg" cx="60" cy="60" r="54"/><circle class="rr-fg" id="rr-fg" cx="60" cy="60" r="54"/></svg>
                 <span class="rr-core" id="rr-core"><span data-icon="mic" data-size="38"></span></span>
@@ -64,7 +98,7 @@
             </div>
             <div class="t-samples" id="t-samples"></div>
             <div class="t-actions">
-              <label class="btn btn-ghost btn-sm"><input type="file" id="t-files" multiple hidden accept="audio/*,video/*"><span data-icon="upload" data-size="16"></span>Thêm từ file</label>
+              <span class="muted" style="font-size:.84rem" id="t-count"></span>
               <button class="btn btn-primary" type="button" id="to-test" disabled>Xong, thử ngay</button>
             </div>
           </div>
@@ -76,6 +110,7 @@
             <div class="rec-zone">
               <button class="rec-ring test" id="test" type="button" aria-label="Thử nhận"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rr-bg" cx="60" cy="60" r="54"/><circle class="rr-fg" id="rt-fg" cx="60" cy="60" r="54"/></svg><span class="rr-core"><span data-icon="ear" data-size="38"></span></span></button>
               <div class="rec-status" id="test-status">Bấm để nghe 3 giây</div>
+              <label class="link" style="font-size:.88rem;cursor:pointer"><input type="file" id="test-file" hidden accept="audio/*,video/*">hoặc thử bằng một file âm thanh / video</label>
             </div>
             <div id="test-out" aria-live="polite"></div>
             <div class="t-actions">
@@ -98,7 +133,7 @@
           <h3 style="font-size:1rem" class="row"><span data-icon="sparkles"></span> Thu sao cho AI nhận tốt</h3>
           <ul class="muted" style="margin:0;padding-left:18px;font-size:.92rem;display:grid;gap:6px">
             <li>Để điện thoại ở chỗ bạn hay nghe thấy âm thanh đó.</li>
-            <li>Mỗi lần thu, cho âm thanh vang lên rõ trong 3 giây.</li>
+            <li>Có thể ghi âm, tải file/video hoặc dán link YouTube, Drive. Web tự cắt những đoạn có âm thanh rõ.</li>
             <li>Thanh "Độ nhớ" đầy là AI đã nhớ tốt. Mẫu nào bị đánh dấu "khác" thì nên xóa.</li>
             <li>Mẫu chỉ lưu trên máy bạn, không gửi đi đâu.</li>
           </ul>
