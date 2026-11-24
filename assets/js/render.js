@@ -1,6 +1,7 @@
 // Các khối giao diện dùng chung: thẻ kết quả, băng sức khỏe, thanh đo, bảng mức tham chiếu.
 
-import { icon, ILLUSTRATIONS } from './icons.js';
+import { icon } from './icons.js';
+import { sceneFor } from './scenes.js';
 import { KIND_INFO, GROUP_BY_ID } from './categories.js';
 import { REFERENCE_LEVELS, bandOf, healthAdvice, percentOf, nearestReference } from './levels.js';
 import { esc } from './ui.js';
@@ -39,7 +40,7 @@ export function resultCard(r, lv, { source = 'file' } = {}) {
   const kind = top?.kind || 'ambient';
   const tone = borderTone(r.status === 'detected' || r.status === 'uncertain' ? kind : 'ambient', lv?.max);
   const danger = r.status === 'detected' && kind === 'danger';
-  const illo = top && (r.status === 'detected' || r.status === 'uncertain') ? ILLUSTRATIONS[top.id] : null;
+  const illo = top && (r.status === 'detected' || r.status === 'uncertain') ? sceneFor(top.id) : null;
 
   let kicker, title, sub = '';
   if (r.status === 'detected') {
@@ -63,7 +64,7 @@ export function resultCard(r, lv, { source = 'file' } = {}) {
   } else {
     kicker = `${icon('info', { size: 16 })} Chưa nhận ra`;
     title = 'Chưa nhận ra <em>âm thanh này</em>';
-    sub = 'Có thể âm thanh không thuộc các nhóm hệ thống biết. Bạn có thể đóng góp mẫu ở trang “Đóng góp dữ liệu”.';
+    sub = 'Có thể âm thanh không thuộc các nhóm hệ thống biết. Bạn có thể dạy AI âm thanh này ở trang “Âm thanh của tôi”.';
   }
 
   const visual = illo

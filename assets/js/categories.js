@@ -16,6 +16,7 @@ export const KIND_INFO = {
   people:  { label: 'Con người & âm nhạc', tone: 'blue' },
   nature:  { label: 'Thiên nhiên & động vật', tone: 'green' },
   ambient: { label: 'Tiếng nền', tone: 'gray' },
+  personal: { label: 'Âm thanh của bạn', tone: 'blue' },
 };
 
 export const GROUPS = [

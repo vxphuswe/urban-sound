@@ -2,6 +2,8 @@
 // Luôn lưu trong trình duyệt; nếu đăng nhập bằng Supabase thì đồng bộ thêm lên bảng `detections`.
 
 import { supabase, currentUser } from './auth.js';
+import { putAudio, deleteAudio } from './blobstore.js';
+import { recordDetection } from './journey.js';
 
 const KEY = 'tp.history';
 const MAX = 300;
@@ -37,9 +39,14 @@ const fromRow = (r) => ({
 });
 
 /** Thêm một lần nhận diện. item: {source, fileName, groupId, label, conf, kind, icon, levelDb, peakDb, duration, transcript, alts, status} */
-export async function addEntry(item) {
+export async function addEntry(item, { audio, audioName } = {}) {
   const it = { id: uuid(), ts: Date.now(), fav: false, ...item };
+  if (audio) {
+    const ok = await putAudio(it.id, audio, audioName || item.fileName, (k) => readLocal().some((x) => x.id === k && x.fav));
+    if (ok) { it.hasAudio = true; it.audioName = audioName || item.fileName || ''; it.audioSize = audio.size; }
+  }
   writeLocal([it, ...readLocal()]);
+  if (it.groupId && it.status !== 'quiet') recordDetection(String(it.groupId).startsWith('my_') ? null : it.groupId, it.kind);
   const r = await remote().catch(() => null);
   if (r) {
     const { error } = await r.sb.from('detections').insert(toRow(it, r.u.id));
@@ -72,12 +79,14 @@ export async function toggleFavorite(id) {
 
 export async function removeEntry(id) {
   writeLocal(readLocal().filter((x) => x.id !== id));
+  deleteAudio(id);
   const r = await remote().catch(() => null);
   if (r) await r.sb.from('detections').delete().eq('id', id);
 }
 
 /** Xóa lịch sử nhưng GIỮ các mục yêu thích. */
 export async function clearHistory() {
+  deleteAudio(readLocal().filter((x) => !x.fav).map((x) => x.id));
   writeLocal(readLocal().filter((x) => x.fav));
   const r = await remote().catch(() => null);
   if (r) await r.sb.from('detections').delete().eq('favorite', false);
@@ -93,7 +102,9 @@ export async function listEntries() {
   const ids = new Set(data.map((d) => d.id));
   const pending = local.filter((x) => !ids.has(x.id) && !x.synced);
   if (pending.length) await r.sb.from('detections').insert(pending.map((x) => toRow(x, r.u.id)));
-  const merged = [...pending.map((x) => ({ ...x, synced: true })), ...data.map(fromRow)].sort((a, b) => b.ts - a.ts);
+  const localById = new Map(local.map((x) => [x.id, x]));
+  const withLocal = (x) => { const l = localById.get(x.id); return l?.hasAudio ? { ...x, hasAudio: true, audioName: l.audioName, audioSize: l.audioSize } : x; };
+  const merged = [...pending.map((x) => ({ ...x, synced: true })), ...data.map(fromRow).map(withLocal)].sort((a, b) => b.ts - a.ts);
   writeLocal(merged);
   return merged;
 }

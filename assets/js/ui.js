@@ -1,8 +1,9 @@
 // Khung chung của mọi trang: thanh điều hướng, chân trang, giao diện sáng/tối, thông báo nhỏ (toast).
 
 import { CONFIG } from './config.js';
-import { icon } from './icons.js';
+import { icon, LOGO_MARK } from './icons.js';
 import { currentUser, onAuthChange, signOut, isDemoAuth } from './auth.js';
+import { setUnlockHandler, recordVisit } from './journey.js';
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -18,16 +19,11 @@ const NAV = [
       { href: 'do-on.html#so-sanh', label: 'So sánh mức ồn', desc: 'Tiếng của bạn to cỡ nào?', icon: 'bars' },
     ],
   },
-  {
-    label: 'Sức khỏe', icon: 'shield', items: [
-      { href: 'suc-khoe.html', label: 'Sức khỏe & an toàn tai', desc: 'Nghe bao lâu thì hại tai?', icon: 'shield' },
-      { href: 'do-on.html#so-sanh', label: 'So sánh mức ồn', desc: 'Tiếng của bạn to cỡ nào?', icon: 'bars' },
-    ],
-  },
+  { href: 'suc-khoe.html', label: 'Sức khỏe', icon: 'shield' },
   {
     label: 'Thêm', icon: 'dots', items: [
       { href: 'lich-su.html', label: 'Lịch sử & yêu thích', desc: 'Xem lại các lần nhận diện', icon: 'history' },
-      { href: 'du-lieu.html', label: 'Đóng góp dữ liệu', desc: 'Thu mẫu để train thêm', icon: 'database' },
+      { href: 'du-lieu.html', label: 'Âm thanh của tôi', desc: 'Thu âm, lưu lại & dạy AI', icon: 'database' },
       { href: 'gioi-thieu.html', label: 'Về dự án & mô hình', desc: 'Công nghệ, độ chính xác', icon: 'cpu' },
     ],
   },
@@ -45,7 +41,7 @@ function navHtml() {
       const active = cur === n.href ? ' is-active' : '';
       return `<a class="nav-link${active}" href="${n.href}">${icon(n.icon, { size: 17 })}<span>${n.label}</span></a>`;
     }
-    const active = (n.match || n.items.map((x) => x.href.split('#')[0])).includes(cur) && (n.match || n.label !== 'Sức khỏe' || cur === 'suc-khoe.html') ? ' is-active' : '';
+    const active = (n.match || n.items.map((x) => x.href.split('#')[0])).includes(cur) ? ' is-active' : '';
     return `<div class="nav-drop" data-drop>
       <button class="nav-link${active}" type="button" aria-expanded="false" aria-haspopup="true" id="drop-${i}">${icon(n.icon, { size: 17 })}<span>${n.label}</span>${icon('chevron', { size: 14, cls: 'chev' })}</button>
       <div class="drop-menu" role="menu" aria-labelledby="drop-${i}">
@@ -58,14 +54,14 @@ function headerHtml() {
   return `
   <div class="nav-wrap container">
     <a class="brand" href="index.html" aria-label="${CONFIG.APP_NAME} – trang chủ">
-      <span class="brand-mark">${icon('logo', { size: 22, stroke: 2 })}</span>
+      <span class="brand-mark">${LOGO_MARK}</span>
       <span class="brand-name">${CONFIG.APP_NAME}</span>
     </a>
     <nav class="nav" aria-label="Chính">${navHtml()}</nav>
     <div class="nav-right">
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện sáng/tối">${icon('sun', { size: 18, cls: 'only-dark' })}${icon('moon', { size: 18, cls: 'only-light' })}</button>
       <div id="auth-slot" class="auth-slot"><a class="btn btn-ghost btn-sm" href="dang-nhap.html">Đăng nhập</a></div>
-      <a class="btn btn-primary btn-sm hide-sm" href="nhan-dien.html">Bắt đầu miễn phí</a>
+      <a class="btn btn-primary btn-sm hide-sm" id="cta-start" href="nhan-dien.html">Thử nhận diện</a>
       <button class="icon-btn show-sm" id="menu-toggle" type="button" aria-label="Mở menu" aria-expanded="false">${icon('menu', { size: 20 })}</button>
     </div>
   </div>
@@ -80,12 +76,12 @@ function footerHtml() {
   return `
   <div class="container footer-grid">
     <div class="footer-brand">
-      <a class="brand" href="index.html"><span class="brand-mark">${icon('logo', { size: 22, stroke: 2 })}</span><span class="brand-name">${CONFIG.APP_NAME}</span></a>
+      <a class="brand" href="index.html"><span class="brand-mark">${LOGO_MARK}</span><span class="brand-name">${CONFIG.APP_NAME}</span></a>
       <p>Nghe, hiểu và cảnh báo âm thanh quanh bạn. Mọi xử lý diễn ra ngay trên thiết bị – âm thanh không bị gửi đi đâu.</p>
     </div>
     <div><h4>Công cụ</h4><a href="nhan-dien.html">Nhận diện âm thanh</a><a href="truc-tiep.html">Giám sát trực tiếp</a><a href="do-on.html">Máy đo decibel</a><a href="nhan-dien.html#phien-am">Phiên âm giọng nói</a></div>
     <div><h4>Tìm hiểu</h4><a href="huong-dan.html">Hướng dẫn sử dụng</a><a href="do-on.html#so-sanh">So sánh mức ồn</a><a href="suc-khoe.html">Sức khỏe & an toàn tai</a><a href="huong-dan.html#hoi-dap">Câu hỏi thường gặp</a></div>
-    <div><h4>Dự án</h4><a href="gioi-thieu.html">Về dự án & mô hình</a><a href="du-lieu.html">Đóng góp dữ liệu</a><a href="lich-su.html">Lịch sử & yêu thích</a><a href="dang-nhap.html">Tài khoản</a></div>
+    <div><h4>Dự án</h4><a href="gioi-thieu.html">Về dự án & mô hình</a><a href="du-lieu.html">Âm thanh của tôi</a><a href="lich-su.html">Lịch sử & yêu thích</a><a href="dang-nhap.html">Tài khoản</a></div>
   </div>
   <div class="container footer-bottom">
     <span>© ${y} ${CONFIG.APP_NAME} · Đồ án nhận diện âm thanh đô thị</span>
@@ -97,6 +93,9 @@ async function renderAuth() {
   const slot = $('#auth-slot');
   if (!slot) return;
   const u = await currentUser().catch(() => null);
+  // Đã đăng nhập thì không cần nút kêu gọi dùng thử nữa
+  const cta = $('#cta-start');
+  if (cta) cta.hidden = !!u;
   if (!u) {
     slot.innerHTML = `<a class="btn btn-ghost btn-sm" href="dang-nhap.html?next=${encodeURIComponent(page())}">Đăng nhập</a>`;
     return;
@@ -176,6 +175,23 @@ export function toast(msg, { tone = 'default', ms = 3200 } = {}) {
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
 }
 
+/** Mở khóa huy hiệu: thẻ chúc mừng + pháo giấy nhỏ (tôn trọng "giảm chuyển động"). */
+export function celebrate(b) {
+  const el = document.createElement('div');
+  el.className = 'badge-toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML = `<span class="bt-medal">${icon(b.icon, { size: 26 })}</span><div><small>Mở khóa huy hiệu</small><b>${esc(b.name)}</b><span>${esc(b.hint)}</span></div><a class="link" href="index.html#hanh-trinh">Xem</a>`;
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const conf = document.createElement('div');
+    conf.className = 'bt-confetti';
+    conf.innerHTML = Array.from({ length: 18 }, (_, i) => `<i style="--x:${(Math.random() * 2 - 1) * 160}px;--y:${-60 - Math.random() * 120}px;--r:${Math.random() * 720}deg;--c:${['#2ee6c5', '#ffb547', '#ff5fa2', '#7c8cff', '#fff'][i % 5]};animation-delay:${Math.random() * 0.15}s"></i>`).join('');
+    el.appendChild(conf);
+  }
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 5200);
+}
+
 /** Hiện dần các khối khi cuộn tới */
 function reveal() {
   const els = $$('.reveal');
@@ -226,6 +242,8 @@ export function initLayout() {
   renderAuth();
   onAuthChange(() => renderAuth());
   reveal();
+  setUnlockHandler(celebrate);
+  recordVisit();
   if (isDemoAuth() && page() === 'dang-nhap.html') document.body.classList.add('auth-demo');
 }
 

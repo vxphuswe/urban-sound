@@ -42,7 +42,7 @@
             <div class="live-label" id="live-label">Sẵn sàng nghe</div>
             <div class="live-sub" id="live-sub">Bấm “Bắt đầu nghe” và cho phép trình duyệt dùng micro.</div>
           </div>
-          <div class="live-cc" id="live-cc" hidden><span class="cc-tag">Phụ đề trình duyệt</span><div id="captions"></div></div>
+          <div class="live-cc" id="live-cc" hidden><span class="cc-tag"><i class="cc-dot"></i>Phụ đề trực tiếp</span><div id="captions"></div></div>
           <canvas class="spec" id="spec"></canvas>
           <video id="cam-video" playsinline muted autoplay hidden></video>
           <canvas class="cam-canvas" id="cam-canvas" aria-label="Khung camera kèm kết quả nhận diện âm thanh"></canvas>
@@ -87,6 +87,19 @@
           <div class="card-pad" style="padding-top:12px"><canvas id="live-timeline" class="live-timeline"></canvas><div class="tl-axis"><span>-60 s</span><span>-45 s</span><span>-30 s</span><span>-15 s</span><span>bây giờ</span></div></div>
         </section>
 
+        <section class="card cc-card" id="cc-card">
+          <div class="card-title"><h3 class="row" style="gap:8px"><span data-icon="text"></span> Lời nói đã nghe được</h3>
+            <div class="row" style="gap:6px">
+              <select class="select select-sm" id="cc-lang" aria-label="Ngôn ngữ phụ đề"><option value="vi-VN">Tiếng Việt</option><option value="en-US">English</option></select>
+              <button class="btn btn-ghost btn-sm" id="cc-copy" type="button" disabled title="Sao chép"><span data-icon="copy" data-size="16"></span></button>
+              <button class="btn btn-ghost btn-sm" id="cc-txt" type="button" disabled>.txt</button>
+              <button class="btn btn-ghost btn-sm" id="cc-srt" type="button" disabled>.srt</button>
+              <button class="btn btn-ghost btn-sm" id="cc-clear" type="button" disabled title="Xóa" aria-label="Xóa bản ghi lời nói"><span data-icon="trash" data-size="16"></span></button>
+            </div></div>
+          <ul class="cc-list" id="cc-list"><li class="empty">Bật <b>Phụ đề</b> rồi nói, lời nói sẽ được ghi lại ở đây kèm giờ.</li></ul>
+          <p class="muted cc-note">Phụ đề dùng bộ nhận dạng giọng nói <b>của trình duyệt</b> (cần Internet), không phải mô hình AI của Urban Sound. Muốn phiên âm chính xác hơn trên máy, dùng trang Nhận diện.</p>
+        </section>
+
         <div id="live-health"></div>
       </div>
 
@@ -106,8 +119,8 @@
           <div class="sens sens-4" id="noise-limit">
             <button type="button" data-v="55"><b>55</b><small>Phòng ngủ</small></button>
             <button type="button" data-v="70"><b>70</b><small>Văn phòng</small></button>
-            <button type="button" data-v="85" class="on"><b>85</b><small>An toàn tai</small></button>
-            <button type="button" data-v="100"><b>100</b><small>Nguy hiểm</small></button>
+            <button type="button" data-v="85" class="on"><b>85</b><small>Bắt đầu hại tai</small></button>
+            <button type="button" data-v="100"><b>100</b><small>Rất nguy hiểm</small></button>
           </div>
           <small class="muted">Báo khi độ ồn trung bình 3 giây gần nhất vượt ngưỡng.</small>
 
@@ -125,6 +138,7 @@
             <input type="range" id="alarm-vol" min="5" max="100" step="5" value="40"></label>
           <small class="muted">Giữ âm lượng vừa phải để không ảnh hưởng tai. Khi web đang phát âm báo, phần nhận diện tạm bỏ qua tiếng chuông của chính nó.</small>
           <div class="options" style="margin-top:14px">
+            <label class="switch"><input type="checkbox" id="opt-autocam" checked> Tự bật camera khi bắt đầu nghe</label>
             <label class="switch"><input type="checkbox" id="opt-vibrate" checked> Rung & thông báo</label>
             <label class="switch"><input type="checkbox" id="opt-save" checked> Lưu vào lịch sử</label>
           </div>

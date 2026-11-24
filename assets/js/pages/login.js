@@ -1,6 +1,6 @@
 import { initLayout, $, $$, toast, esc } from '../ui.js';
 import { BRAND } from '../icons.js';
-import { currentUser, signInWithProvider, sendEmailCode, verifyEmailCode, signOut, isDemoAuth, supabase } from '../auth.js';
+import { currentUser, signInWithProvider, sendEmailCode, verifyEmailCode, signOut, isDemoAuth, supabase, hasGoogleGis, renderGoogleButton } from '../auth.js';
 
 initLayout();
 $('#g-logo').outerHTML = BRAND.google;
@@ -29,6 +29,16 @@ async function showDone(u) {
 })();
 
 $('#btn-google').addEventListener('click', () => signInWithProvider('google').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
+// Có Client ID: dùng nút Google chính thức (cửa sổ Google ghi tên web thay vì "...supabase.co")
+if (hasGoogleGis()) {
+  const holder = document.createElement('div');
+  holder.className = 'gsi-holder';
+  $('#btn-google').after(holder);
+  renderGoogleButton(holder, {
+    onDone: (u) => { toast(`Đăng nhập thành công. Chào ${u.name}!`, { tone: 'success' }); showDone(u); },
+    onError: (e) => toast(e.message, { tone: 'error', ms: 8000 }),
+  }).then(() => { $('#btn-google').hidden = true; }).catch(() => holder.remove()); // lỗi tải → giữ nút cũ
+}
 $('#btn-apple').addEventListener('click', () => signInWithProvider('apple').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
 
 $('#email-form').addEventListener('submit', async (e) => {

@@ -119,10 +119,12 @@ export class Recorder {
 export class LiveMic {
   constructor({ seconds = 4, onBlock } = {}) { this.seconds = seconds; this.onBlock = onBlock; }
 
-  async start(deviceId) {
+  /** `stream`: luồng micro đã xin sẵn (ví dụ xin chung với camera để chỉ hỏi quyền một lần). */
+  async start(deviceId, stream) {
     const audio = { ...MIC_CONSTRAINTS };
     if (deviceId) audio.deviceId = { exact: deviceId };
-    try {
+    if (stream) this.stream = stream;
+    else try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio });
     } catch (e) {
       if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') throw e;

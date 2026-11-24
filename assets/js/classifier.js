@@ -5,6 +5,7 @@ import { CONFIG } from './config.js';
 import { GROUPS, GROUP_BY_ID, buildGroupIndex } from './categories.js';
 import { denoise, frameLevels, rms, dbfs } from './dsp.js';
 import { analyzeClip, groupScores, mergeHead, FRAME_HOP, FRAME_WIN } from './analysis.js';
+import { loadPersonal, personalScores, personalGroups, hasPersonal, bestPersonalMatch, meanEmbedding } from './personal.js';
 
 export const SR = 16000;
 const MIN_SAMPLES = 15600;               // YAMNet cần tối thiểu ~0.975 s
@@ -136,6 +137,7 @@ export async function loadClassifier(onStatus = () => {}) {
       S.classNames = DEMO_NAMES;
       S.groupIndex = buildGroupIndex(DEMO_NAMES);
       S.source = 'demo';
+      await loadPersonal().catch(() => {});
       onStatus('Chế độ demo giao diện (không dùng mô hình thật)', 100);
       return S;
     }
@@ -178,6 +180,7 @@ export async function loadClassifier(onStatus = () => {}) {
     S.groupIndex = buildGroupIndex(S.classNames);
     S.head = await loadHead();
     S.customGroups = S.head?.custom || {};
+    await loadPersonal().catch(() => {});
 
     onStatus('Khởi động mô hình…', 92);
     const warm = model.predict(tf.zeros([MIN_SAMPLES]));
@@ -192,6 +195,9 @@ export async function loadClassifier(onStatus = () => {}) {
     throw e;
   }
 }
+
+/** Nạp lại danh sách "Âm thanh của tôi" (sau khi thêm/xóa mẫu). */
+export { loadPersonal as reloadPersonal } from './personal.js';
 
 export function classifierInfo() {
   return { ready: Boolean(S.model || S.demo), demo: S.demo, source: S.source, classes: S.classNames?.length || 0, head: S.head ? S.head.classes.map((c) => c.vi || c.id) : [] };
@@ -272,11 +278,13 @@ export async function analyzeWave(wave, { useDenoise = CONFIG.DENOISE_DEFAULT, s
     headFrames: headFramesFrom(a.emb, nFrames), customGroups: S.customGroups,
     headKnown: S.head?.known, headMinConf: S.head?.minConf,
   });
+  const personal = hasPersonal() ? bestPersonalMatch(a.emb, nFrames) : null;
   return {
     result,
     meta: {
       duration: wave.length / SR, analyzedSec: x.length / SR, truncated, levels: Array.from(levels),
       denoiseDb: den ? den.reductionDb : 0, ms: Math.round(performance.now() - t0), source: S.source, demo: S.demo,
+      personal, embedding: meanEmbedding(a.emb, nFrames, levels),
     },
   };
 }
@@ -302,8 +310,10 @@ export async function classifyLive(wave, { useDenoise = false } = {}) {
     if (hf) g = mergeHead(g, hf[f], S.head.known, S.head.minConf);
     for (const id in g) raw[id] = Math.max(raw[id] || 0, g[id]);
   }
+  // Âm thanh riêng người dùng đã dạy
+  if (hasPersonal()) Object.assign(raw, personalScores(a.emb, a.nFrames));
   const weighted = {};
-  const all = { ...GROUP_BY_ID, ...S.customGroups };
+  const all = { ...GROUP_BY_ID, ...S.customGroups, ...personalGroups() };
   for (const id in raw) weighted[id] = raw[id] * (all[id]?.weight ?? 1);
   // 5 lớp YAMNet thô cao nhất (cho phần "chi tiết")
   let top = [];
@@ -316,7 +326,7 @@ export async function classifyLive(wave, { useDenoise = false } = {}) {
 }
 
 export function groupDef(id) {
-  return GROUP_BY_ID[id] || S.customGroups[id] || null;
+  return GROUP_BY_ID[id] || S.customGroups[id] || personalGroups()[id] || null;
 }
 
 // ------------------------------------------------------------------ chế độ demo (kiểm thử giao diện khi không có mạng)
@@ -342,5 +352,23 @@ function demoScores(wave) {
     }
     if (loud <= -60) scores[f * C + idx('Silence')] = 0.85;
   }
-  return { scores, emb: null, nFrames: n, nClasses: C };
+  // Đặc trưng giả lập (chỉ để chạy thử giao diện "Âm thanh của tôi"): tự tương quan quanh chỗ to nhất của khung
+  // (không phụ thuộc vị trí âm thanh trong khung), lặp thành 1024 chiều. Mô hình thật dùng embedding YAMNet.
+  const emb = new Float32Array(n * 1024);
+  for (let f = 0; f < n; f++) {
+    const a = f * HOP_SAMPLES, end = Math.min(wave.length, a + MIN_SAMPLES);
+    let pk = a, pv = 0;
+    for (let i = a; i < end; i += 16) { const v = Math.abs(wave[i]); if (v > pv) { pv = v; pk = i; } }
+    const s0 = Math.max(0, Math.min(wave.length - 1024, pk - 512));
+    const feat = new Float32Array(64);
+    let e0 = 1e-9;
+    for (let i = 0; i < 1024 && s0 + i < wave.length; i++) e0 += wave[s0 + i] * wave[s0 + i];
+    for (let lag = 1; lag <= 64; lag++) {
+      let c = 0;
+      for (let i = 0; i + lag < 1024 && s0 + i + lag < wave.length; i++) c += wave[s0 + i] * wave[s0 + i + lag];
+      feat[lag - 1] = 1 + c / e0;
+    }
+    for (let d = 0; d < 1024; d++) emb[f * 1024 + d] = feat[d % 64];
+  }
+  return { scores, emb, nFrames: n, nClasses: C };
 }

@@ -19,43 +19,51 @@
   <a class="sr-only" href="#main">Bỏ qua điều hướng</a>
   <header id="site-header"></header>
   <main id="main">
-    <section class="hero">
+    <section class="hero hero-night">
+      <svg class="skyline" id="skyline" viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
       <div class="container hero-grid">
         <div class="reveal">
-          <span class="eyebrow">Công nghệ AI <span class="sep">/</span> Âm thanh đô thị</span>
-          <h1>Nghe phố phường,<br>hiểu từng <span class="hl">âm thanh</span></h1>
-          <p class="hero-sub">Bấm một nút, Urban Sound cho bạn biết <b>đây là tiếng gì</b>, <b>ồn cỡ nào</b> và <b>có hại tai không</b> – kèm phiên âm lời nói. Chạy ngay trên trình duyệt điện thoại hoặc máy tính.</p>
+          <span class="eyebrow">AI nghe âm thanh đô thị</span>
+          <h1>Nghe phố phường, hiểu từng âm thanh</h1>
+          <p class="hero-sub">Bấm một nút, Urban Sound cho bạn biết <b>đây là tiếng gì</b>, <b>ồn cỡ nào</b> và <b>có hại tai không</b>. Dạy AI nhận cả chuông cửa nhà bạn. Chạy ngay trên trình duyệt, âm thanh không rời khỏi máy.</p>
           <div class="hero-cta">
-            <a class="btn btn-primary btn-lg" href="nhan-dien.html">Nhận diện ngay <span data-icon="arrow" data-size="18"></span></a>
-            <a class="btn btn-lg" href="huong-dan.html"><span data-icon="book" data-size="18"></span>Xem hướng dẫn</a>
+            <a class="btn btn-primary btn-lg" href="nhan-dien.html">Nhận diện ngay</a>
+            <a class="btn btn-lg btn-glass" href="truc-tiep.html"><span data-icon="mic" data-size="18"></span>Nghe trực tiếp</a>
           </div>
           <div class="hero-note">
             <span><span data-icon="check" data-size="16"></span>Không cần cài app</span>
-            <span><span data-icon="check" data-size="16"></span>Miễn phí</span>
-            <span><span data-icon="lock" data-size="16"></span>Âm thanh không rời khỏi máy</span>
+            <span><span data-icon="lock" data-size="16"></span>Xử lý trên máy bạn</span>
+            <span><span data-icon="sparkles" data-size="16"></span>40+ nhóm âm thanh</span>
           </div>
         </div>
 
-        <div class="reveal reveal-d2" style="position:relative">
-          <div class="mock">
-            <div class="mock-bar"><i></i><i></i><i></i></div>
-            <div class="result" data-tone="green" style="animation:none">
-              <div class="result-top">
-                <div class="result-visual" id="hero-illo"></div>
-                <div>
-                  <div class="result-kicker"><span data-icon="check" data-size="16"></span> Đã nhận diện</div>
-                  <h2 style="font-size:1.9rem">Đây là tiếng <em>chó sủa</em> <span class="pct">(96%)</span></h2>
-                  <div class="conf-bar"><span>Rất chắc chắn</span><div class="progress"><i style="width:96%"></i></div></div>
-                </div>
-              </div>
-              <div class="alts" style="margin-top:16px;padding-top:14px">
-                <div class="row" style="justify-content:space-between;font-size:.88rem;margin-bottom:8px"><span class="muted">Mức âm thanh</span><b class="mono">72 dB · To</b></div>
-                <div class="meter"><div class="meter-mask" style="left:60%"></div><div class="meter-pin" style="left:60%"></div></div>
-              </div>
-            </div>
+        <div class="reveal reveal-d2 reel-wrap">
+          <div class="reel" id="reel" aria-live="off">
+            <div class="reel-head"><span class="reel-dot"></span><span>Ví dụ kết quả</span><span class="reel-db mono" id="reel-db">72 dB</span></div>
+            <div class="reel-stage" id="reel-scene"></div>
+            <div class="reel-label"><b id="reel-name">Chó sủa</b><span class="mono" id="reel-pct">96%</span></div>
+            <div class="reel-bar"><i id="reel-bar"></i></div>
+            <div class="reel-dots" id="reel-dots"></div>
           </div>
-          <div class="mock-float f1"><span class="dot tone-red tone-bg" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center"><span data-icon="siren" data-size="20"></span></span><div><b>Còi hú cứu thương</b><span class="muted">Cảnh báo · 12:04</span></div></div>
-          <div class="mock-float f2"><span class="dot tone-blue tone-bg" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center"><span data-icon="text" data-size="20"></span></span><div><b>“Bánh mì nóng giòn đây…”</b><span class="muted">Phiên âm · 00:03</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm journey" id="hanh-trinh">
+      <div class="container">
+        <div class="journey-grid">
+          <div class="journey-stats reveal">
+            <h2>Hành trình nghe của bạn</h2>
+            <p class="muted">Mỗi âm thanh AI nhận ra được thêm vào bộ sưu tập. Dùng mỗi ngày để giữ chuỗi.</p>
+            <div class="streak" id="j-streak"></div>
+            <div class="j-nums" id="j-nums"></div>
+          </div>
+          <div class="journey-col reveal reveal-d1">
+            <div class="row" style="justify-content:space-between"><h3 style="margin:0">Bộ sưu tập âm thanh</h3><span class="muted mono" id="j-count"></span></div>
+            <div class="collection" id="j-collection"></div>
+            <h3 style="margin:22px 0 10px">Huy hiệu</h3>
+            <div class="medals" id="j-badges"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -98,7 +106,7 @@
           <a class="card card-hover feature reveal reveal-d2" href="do-on.html"><span class="feature-ic"><span data-icon="gauge" data-size="22"></span></span><h3>Máy đo decibel</h3><p>Đồng hồ đo độ ồn theo thời gian thực, so sánh với tiếng quen thuộc.</p><span class="link">Đo độ ồn <span data-icon="arrow" data-size="16"></span></span></a>
           <a class="card card-hover feature reveal" href="nhan-dien.html#phien-am"><span class="feature-ic"><span data-icon="text" data-size="22"></span></span><h3>Phiên âm lời nói</h3><p>Chuyển giọng nói trong file, ghi âm, video thành văn bản tiếng Việt, xuất .txt/.srt.</p><span class="link">Phiên âm <span data-icon="arrow" data-size="16"></span></span></a>
           <a class="card card-hover feature reveal reveal-d1" href="suc-khoe.html"><span class="feature-ic"><span data-icon="shield" data-size="22"></span></span><h3>Cảnh báo sức khỏe</h3><p>Biết ngay mức ồn có hại tai không và nên tiếp xúc tối đa bao lâu mỗi ngày.</p><span class="link">Tìm hiểu <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal reveal-d2" href="lich-su.html"><span class="feature-ic"><span data-icon="star" data-size="22"></span></span><h3>Lịch sử & yêu thích</h3><p>Đăng nhập để lưu trên mọi thiết bị. Mục yêu thích không bị xóa khi dọn lịch sử.</p><span class="link">Xem lịch sử <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d2" href="du-lieu.html"><span class="feature-ic"><span data-icon="database" data-size="22"></span></span><h3>Dạy AI âm thanh của bạn</h3><p>Thu 3–5 mẫu chuông cửa, tiếng rao quen… lần sau AI gọi đúng tên bạn đặt. Mẫu được lưu lại để nghe, tải về.</p><span class="link">Thử dạy AI <span data-icon="arrow" data-size="16"></span></span></a>
         </div>
       </div>
     </section>

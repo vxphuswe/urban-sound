@@ -6,8 +6,9 @@
 
 import { CONFIG } from '../config.js';
 import { initLayout, $, $$, esc, toast, hydrateIcons } from '../ui.js';
-import { icon, ILLUSTRATIONS } from '../icons.js';
-import { LiveMic, listMics, micErrorMessage } from '../audio.js';
+import { icon } from '../icons.js';
+import { sceneFor } from '../scenes.js';
+import { LiveMic, listMics, micErrorMessage, MIC_CONSTRAINTS, encodeWav } from '../audio.js';
 import { loadClassifier, classifyLive, groupDef } from '../classifier.js';
 import { LiveStabilizer, displayConfidence } from '../analysis.js';
 import { GROUPS, AMBIENT_IDS } from '../categories.js';
@@ -17,6 +18,7 @@ import { LiveCaptions } from '../transcribe.js';
 import { addEntry } from '../store.js';
 import { Camera, countCameras, cameraErrorMessage } from '../camera.js';
 import { Scope } from '../scope.js';
+import { recordLive } from '../journey.js';
 
 initLayout();
 
@@ -51,7 +53,7 @@ function setState(st, text) {
 }
 
 // ================================================================ Lựa chọn cảnh báo
-const WATCHABLE = ['siren', 'gunshot', 'alarm', 'glass', 'fire', 'shout', 'baby', 'children', 'dog', 'cat', 'horn', 'fireworks', 'construction', 'motorbike', 'speech', 'bell'];
+const WATCHABLE = ['siren', 'gunshot', 'alarm', 'glass', 'fire', 'shout', 'baby', 'children', 'crowd', 'dog', 'cat', 'horn', 'fireworks', 'construction', 'motorbike', 'speech', 'bell'];
 const DEFAULT_WATCH = ['siren', 'gunshot', 'alarm', 'glass', 'fire', 'shout', 'baby', 'dog'];
 const DANGER = new Set(['siren', 'gunshot', 'alarm', 'glass', 'fire']);
 let watch;
@@ -86,6 +88,9 @@ cal.value = localStorage.getItem('tp.calibration') ?? CONFIG.CALIBRATION_DB;
 const calLabel = () => ($('#cal-v').textContent = `+${cal.value} dB`);
 calLabel();
 cal.addEventListener('input', () => { localStorage.setItem('tp.calibration', cal.value); calLabel(); });
+const autocam = $('#opt-autocam');
+try { autocam.checked = localStorage.getItem('tp.autocam') !== '0'; } catch { /* bỏ qua */ }
+autocam.addEventListener('change', () => { try { localStorage.setItem('tp.autocam', autocam.checked ? '1' : '0'); } catch { /* bỏ qua */ } });
 $('#cooldown').addEventListener('input', (e) => { stab.cooldown = Number(e.target.value); $('#cd-v').textContent = `${e.target.value} giây`; });
 $('#alarm-vol').addEventListener('input', (e) => { $('#alarm-vol-v').textContent = `${e.target.value}%`; Siren.setVolume(); });
 
@@ -108,9 +113,23 @@ async function start() {
   setState('loading', 'Đang mở micro');
   setCenter({ label: 'Đang mở micro…', sub: 'Hãy bấm “Cho phép” nếu trình duyệt hỏi.', icon: 'mic' });
   const mic = new LiveMic({ seconds: 4, onBlock });
+  const devId = $('#mic-select').value || undefined;
+  // Tự bật camera: xin quyền micro + camera trong MỘT lần hỏi
+  const wantCam = $('#opt-autocam').checked && !cam.on && !!navigator.mediaDevices?.getUserMedia;
+  let pre = null, camErr = null;
+  if (wantCam) {
+    setCenter({ label: 'Đang mở micro và camera…', sub: 'Hãy chọn “Cho phép khi truy cập trang web” để lần sau không phải hỏi lại.', icon: 'mic' });
+    try {
+      pre = await navigator.mediaDevices.getUserMedia({
+        audio: { ...MIC_CONSTRAINTS, ...(devId ? { deviceId: { exact: devId } } : {}) },
+        video: cam.constraints(),
+      });
+    } catch (e) { camErr = e; }
+  }
   try {
-    await mic.start($('#mic-select').value || undefined);
+    await mic.start(devId, pre ? new MediaStream(pre.getAudioTracks()) : undefined);
   } catch (e) {
+    pre?.getTracks().forEach((t) => t.stop());
     btn.disabled = false;
     setState('error');
     let msg = micErrorMessage(e);
@@ -119,8 +138,10 @@ async function start() {
     toast(msg, { tone: 'error', ms: 9000 });
     return;
   }
-  if (gen !== S.gen) { mic.stop(); return; }
+  if (gen !== S.gen) { mic.stop(); pre?.getTracks().forEach((t) => t.stop()); return; }
   S.mic = mic;
+  if (pre) { await cam.adopt(new MediaStream(pre.getVideoTracks())); S.camByStart = true; afterCam(); }
+  else if (wantCam && camErr) toast(`Chỉ bật được micro. ${cameraErrorMessage(camErr)}`, { tone: 'error', ms: 8000 });
   S.running = true; S.muted = false; S.t0 = performance.now();
   S.levels = []; S.hist = []; S.timeline = []; S.floor = -60;
   S.stat = { n: 0, e: 0, min: Infinity, max: -Infinity };
@@ -137,6 +158,8 @@ async function start() {
   updateMicBtn();
   clearInterval(S.uiTimer);
   S.uiTimer = setInterval(updateLevelUi, 200);
+  clearInterval(S.liveTimer);
+  S.liveTimer = setInterval(() => { if (S.running) recordLive(10); }, 10000);
   scope.reset();
   ensureView();
   refreshMics();
@@ -161,6 +184,10 @@ async function start() {
 function stop() {
   S.gen++;
   S.running = false;
+  clearInterval(S.liveTimer);
+  Rec.stop();
+  if (S.camByStart && cam.on) { cam.stop(); afterCam(); }
+  S.camByStart = false;
   clearInterval(S.uiTimer);
   S.mic?.stop(); S.mic = null;
   if (S.cc) stopCaptions();
@@ -282,11 +309,14 @@ function handleResult({ raw, weighted, level, ms }, tSec) {
   S.hud.votes = out.votes; S.hud.need = out.need;
   if (out.current) {
     const g = groupDef(out.current.id);
-    S.hud.status = 'detected'; S.hud.group = g; S.hud.pct = displayConfidence(raw[g.id] || 0);
+    // Độ tin cậy = mức cao nhất của loại này trong lần phát hiện hiện tại (không tụt về 0% khi âm thanh vừa ngắt)
+    if (S.peakId !== g.id) { S.peakId = g.id; S.peak = 0; }
+    S.peak = Math.max(S.peak * 0.96, raw[g.id] || 0, out.confirmed?.id === g.id ? (raw[g.id] || 0) : 0);
+    S.hud.status = 'detected'; S.hud.group = g; S.hud.pct = displayConfidence(S.peak);
     $('#stage').dataset.tone = borderTone(g.kind, dbNow);
     $('#stage').classList.toggle('alarm', g.kind === 'danger');
     setState('detected', `Đã phát hiện: ${g.vi}`);
-    const pct = displayConfidence(raw[g.id] || 0);
+    const pct = S.hud.pct;
     setCenter({ label: g.vi, sub: `Độ tin cậy ${pct}% · ${new Date().toLocaleTimeString('vi-VN')}`, group: g });
   } else if (out.candidate) {
     const g = groupDef(out.candidate.id);
@@ -304,7 +334,8 @@ function handleResult({ raw, weighted, level, ms }, tSec) {
     if (!active) setCenter({ label: 'Yên tĩnh', sub: 'Không có âm thanh nổi bật.', icon: 'moon' });
     else setCenter({ label: 'Đang nghe…', sub: amb ? `Chỉ có tiếng nền: ${groupDef(amb).vi.toLowerCase()}` : 'Chưa có âm thanh nổi bật.', icon: 'ear' });
   }
-  if (out.fired) onEvent(out.fired.id, raw[out.fired.id], dbNow);
+  if (!out.current) S.peakId = null;
+  if (out.fired) onEvent(out.fired.id, Math.max(raw[out.fired.id] || 0, S.peakId === out.fired.id ? S.peak : 0), dbNow);
 }
 
 // ================================================================ Hiển thị
@@ -317,7 +348,7 @@ function setCenter({ label, sub, group, icon: ic, soft }) {
   const key = `${group?.id || ic}|${soft ? 1 : 0}`;
   if (key === lastCenter) return;
   lastCenter = key;
-  const illo = group && !soft ? ILLUSTRATIONS[group.id] : null;
+  const illo = group && !soft ? sceneFor(group.id) : null;
   $('#live-visual').innerHTML = illo || `<span class="ripple"></span><span class="ripple"></span><div class="big" style="${group ? `color:var(--${kindTone(group.kind)})` : ''}">${icon(group?.icon || ic || 'ear', { size: 52, stroke: 1.6 })}</div>`;
 }
 
@@ -429,11 +460,8 @@ function ensureView() {
 function fitCanvas(c, maxDpr = 2) {
   const w = c.clientWidth, h = c.clientHeight;
   if (!w || !h) return null;
-  // Khi đang quay, giữ nguyên kích thước điểm ảnh để file video không bị lỗi
-  if (!Rec.on || !c.width) {
-    const dpr = Math.min(maxDpr, devicePixelRatio || 1);
-    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
-  }
+  const dpr = Math.min(maxDpr, devicePixelRatio || 1);
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
   const g = c.getContext('2d');
   g.setTransform(c.width / w, 0, 0, c.height / h, 0, 0);
   return { g, w, h };
@@ -470,10 +498,22 @@ function stamp(d = new Date()) {
 const FONT = '"Be Vietnam Pro", system-ui, sans-serif';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 
+/** Khi quay: vẽ vào khung quay độ phân giải cao (1080p/720p) rồi thu nhỏ ra màn hình → video nét, chữ sắc. */
 function drawCam() {
-  const f = fitCanvas($('#cam-canvas'));
-  if (!f) return;
-  const { g, w: W, h: H } = f;
+  const disp = $('#cam-canvas');
+  if (Rec.on && Rec.canvas) {
+    const rc = Rec.canvas, rg = rc.getContext('2d');
+    rg.setTransform(rc.width / Rec.W, 0, 0, rc.height / Rec.H, 0, 0);
+    drawScene(rg, Rec.W, Rec.H);
+    const f = fitCanvas(disp);
+    if (f) { f.g.imageSmoothingQuality = 'high'; f.g.drawImage(rc, 0, 0, f.w, f.h); }
+    return;
+  }
+  const f = fitCanvas(disp);
+  if (f) drawScene(f.g, f.w, f.h);
+}
+
+function drawScene(g, W, H) {
   const now = performance.now();
   const h = S.hud;
   const tone = hudTone(), col = toneColor(tone);
@@ -548,7 +588,7 @@ function drawCam() {
     lines.push(`Độ ồn ≈ ${db != null ? Math.round(db) : '--'} dB (ước tính)`);
   }
   lines.push(stamp());
-  const top = S.running && h.top && !S.muted ? h.top : null;
+  const top = !S.running || S.muted ? null : (h.status === 'detected' && h.group ? { g: h.group, pct: h.pct } : h.top);
   const ph = (top ? 58 * k : 10) + lines.length * 17 * k + 8;
   rr(g, px, py, pw, ph, 10); g.fillStyle = 'rgba(0,0,0,.58)'; g.fill();
   let yy = py + 8;
@@ -656,21 +696,30 @@ const Rec = {
   on: false, mr: null, chunks: [], t0: 0, timer: null, tracks: [], mime: '',
   MAX_SEC: 300,
   pickMime() {
-    const list = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    const list = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.4D0028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
     return list.find((m) => { try { return MediaRecorder.isTypeSupported(m); } catch { return false; } }) || '';
   },
   start() {
-    const c = $('#cam-canvas');
+    const c = document.createElement('canvas');
     if (!('MediaRecorder' in window) || !c.captureStream) return toast('Trình duyệt này chưa hỗ trợ quay video. Hãy dùng Chrome, Edge hoặc Safari bản mới.', { tone: 'error' });
     if (!cam.on && !S.running) return toast('Hãy bật Camera hoặc bấm “Bắt đầu nghe” trước khi quay.');
     this.on = true;
-    updateVisual(); ensureView(); drawCam();
+    updateVisual(); ensureView();
+    // Khung quay cố định: cạnh dài 1920 px (máy tính) / 1280 px (điện thoại), giữ đúng tỉ lệ khung đang thấy
+    const disp = $('#cam-canvas');
+    this.W = disp.clientWidth || 1280; this.H = disp.clientHeight || 720;
+    const long = matchMedia('(max-width: 640px)').matches ? 1280 : 1920;
+    const sc = Math.max(1, long / Math.max(this.W, this.H));
+    c.width = Math.round(this.W * sc / 2) * 2; c.height = Math.round(this.H * sc / 2) * 2;
+    this.canvas = c;
+    drawCam();
     this.tracks = [...c.captureStream(30).getVideoTracks()];
     const at = S.mic?.track;
     if (at && at.readyState === 'live') this.tracks.push(at.clone());
     const mime = this.pickMime();
     try {
-      this.mr = new MediaRecorder(new MediaStream(this.tracks), mime ? { mimeType: mime, videoBitsPerSecond: 4_000_000 } : undefined);
+      const bps = c.width * c.height >= 1920 * 1000 ? 10_000_000 : 6_000_000;
+      this.mr = new MediaRecorder(new MediaStream(this.tracks), { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: bps, audioBitsPerSecond: 128_000 });
     } catch (e) {
       this.cleanup();
       return toast('Không quay được: ' + e.message, { tone: 'error' });
@@ -698,6 +747,7 @@ const Rec = {
   },
   cleanup() {
     this.on = false;
+    this.canvas = null;
     clearInterval(this.timer);
     const b = $('#btn-rec');
     b.classList.remove('rec');
@@ -721,12 +771,16 @@ function onEvent(id, rawScore, db) {
   const g = groupDef(id);
   const conf = displayConfidence(rawScore || 0);
   logEvent({ id, vi: g.vi, icon: g.icon, kind: g.kind, conf, db });
-  if (watch.has(id)) {
+  if (watch.has(id) || g.personal) {
     if (DANGER.has(id)) raiseAlarm({ type: 'danger', group: g, conf, db });
     else notify(`Phát hiện: ${g.vi}`, `Độ tin cậy ${conf}%`, kindTone(g.kind));
   }
   if ($('#opt-save').checked) {
-    addEntry({ source: 'live', fileName: 'Giám sát trực tiếp', groupId: id, label: g.vi, conf, kind: g.kind, icon: g.icon, status: 'detected', levelDb: Math.round(db), peakDb: Math.round(db), duration: 1 }).catch(() => {});
+    // Lưu kèm 3 giây âm thanh quanh lúc phát hiện để nghe lại trong Lịch sử
+    let clip = null;
+    try { if (S.mic?.filled) clip = encodeWav(S.mic.latest(3)); } catch { /* bỏ qua */ }
+    addEntry({ source: 'live', fileName: 'Giám sát trực tiếp', groupId: id, label: g.vi, conf, kind: g.kind, icon: g.icon, status: 'detected', levelDb: Math.round(db), peakDb: Math.round(db), duration: 3 },
+      clip ? { audio: clip, audioName: `truc-tiep-${g.vi}.wav` } : undefined).catch(() => {});
   }
 }
 
@@ -893,25 +947,64 @@ function stopCaptions() {
   S.cc?.stop(); S.cc = null; S.ccText = '';
   $('#btn-cc').classList.remove('active'); $('#live-cc').hidden = true;
   $('#stage').classList.remove('cc-on');
+  $('#cc-card')?.classList.remove('on');
 }
-$('#btn-cc').addEventListener('click', () => {
-  if (!LiveCaptions.supported()) return toast('Trình duyệt này chưa hỗ trợ phụ đề. Hãy dùng Chrome hoặc Edge.', { tone: 'error' });
-  if (S.cc) { stopCaptions(); return; }
+// Câu hoàn chỉnh: viết hoa chữ đầu, thêm dấu chấm nếu thiếu
+const tidy = (t) => { const x = t.trim(); if (!x) return ''; const c = x[0].toLocaleUpperCase('vi') + x.slice(1); return /[.!?…]$/.test(c) ? c : c + '.'; };
+const CC = { lines: [], t0: 0 };
+function renderCaptions(interim = '') {
   const box = $('#captions');
-  const finals = [];
-  box.innerHTML = '<span class="interim">Hãy nói gì đó…</span>';
+  const last = CC.lines.slice(-2);
+  box.innerHTML = (last.length || interim)
+    ? `${last.map((l, i) => `<div class="cc-line${i === last.length - 1 && !interim ? ' new' : ''}">${esc(l.text)}</div>`).join('')}${interim ? `<div class="cc-line interim">${esc(interim)}<i class="cc-caret"></i></div>` : ''}`
+    : '<div class="cc-line interim">Hãy nói gì đó…<i class="cc-caret"></i></div>';
+  S.ccText = interim ? [last.at(-1)?.text, interim].filter(Boolean).join(' ') : last.slice(-1).map((l) => l.text).join(' ');
+  const list = $('#cc-list');
+  if (!CC.lines.length) { list.innerHTML = '<li class="empty">Bật Phụ đề rồi nói, lời nói sẽ được ghi lại ở đây.</li>'; return; }
+  list.innerHTML = CC.lines.map((l) => `<li><span class="mono">${l.at}</span><p>${esc(l.text)}</p></li>`).join('');
+  list.scrollTop = list.scrollHeight;
+  $$('#cc-copy, #cc-txt, #cc-srt, #cc-clear').forEach((b) => (b.disabled = false));
+}
+
+$('#btn-cc').addEventListener('click', () => {
+  if (!LiveCaptions.supported()) return toast('Trình duyệt này chưa hỗ trợ phụ đề. Hãy dùng Chrome, Edge hoặc Safari.', { tone: 'error' });
+  if (S.cc) { stopCaptions(); return; }
+  if (!CC.t0) CC.t0 = performance.now();
   S.cc = new LiveCaptions({
-    lang: 'vi-VN',
-    onText: (t) => { box.innerHTML = `${finals.slice(-2).map((f) => `<div>${esc(f)}</div>`).join('')}<div class="interim">${esc(t)}</div>`; S.ccText = [...finals.slice(-1), t].join(' '); },
-    onFinal: (t) => { if (t) finals.push(t); box.innerHTML = finals.slice(-3).map((f) => `<div>${esc(f)}</div>`).join(''); S.ccText = finals.slice(-2).join(' '); },
-    onError: (e) => { if (e === 'not-allowed') toast('Bạn chưa cho phép nhận dạng giọng nói.', { tone: 'error' }); },
+    lang: $('#cc-lang').value,
+    onText: (t) => renderCaptions(t),
+    onFinal: (t) => {
+      const text = tidy(t);
+      if (text) {
+        const sec = (performance.now() - CC.t0) / 1000;
+        CC.lines.push({ text, sec, at: new Date().toLocaleTimeString('vi-VN') });
+      }
+      renderCaptions();
+    },
+    onError: (e) => {
+      if (e === 'not-allowed' || e === 'service-not-allowed') { toast('Bạn chưa cho phép nhận dạng giọng nói (micro).', { tone: 'error' }); stopCaptions(); }
+      else if (e === 'network') toast('Phụ đề cần Internet (trình duyệt gửi giọng nói tới máy chủ của Google/Apple để nhận dạng).', { tone: 'error', ms: 6000 });
+    },
   });
   S.cc.start();
-  S.ccText = '';
+  renderCaptions();
   $('#btn-cc').classList.add('active');
   $('#live-cc').hidden = false;
   $('#stage').classList.add('cc-on');
+  $('#cc-card').classList.add('on');
 });
+$('#cc-lang').addEventListener('change', () => { if (S.cc) { stopCaptions(); $('#btn-cc').click(); } });
+
+const ccPlain = () => CC.lines.map((l) => `[${l.at}] ${l.text}`).join('\n');
+const ccSrt = () => CC.lines.map((l, i) => {
+  const ts = (x) => { const ms = Math.round(x * 1000); return `${pad2(Math.floor(ms / 3600000))}:${pad2(Math.floor(ms / 60000) % 60)}:${pad2(Math.floor(ms / 1000) % 60)},${String(ms % 1000).padStart(3, '0')}`; };
+  const end = CC.lines[i + 1]?.sec ?? l.sec + 3;
+  return `${i + 1}\n${ts(Math.max(0, l.sec - 2.5))} --> ${ts(Math.min(end, l.sec + 4))}\n${l.text}\n`;
+}).join('\n');
+$('#cc-copy').addEventListener('click', async () => { await navigator.clipboard.writeText(CC.lines.map((l) => l.text).join('\n')); toast('Đã sao chép lời nói.', { tone: 'success' }); });
+$('#cc-txt').addEventListener('click', () => download(new Blob([ccPlain()], { type: 'text/plain;charset=utf-8' }), `loi-noi-${fileStamp()}.txt`));
+$('#cc-srt').addEventListener('click', () => download(new Blob([ccSrt()], { type: 'text/plain;charset=utf-8' }), `phu-de-${fileStamp()}.srt`));
+$('#cc-clear').addEventListener('click', () => { CC.lines = []; CC.t0 = performance.now(); renderCaptions(); $$('#cc-copy, #cc-txt, #cc-srt, #cc-clear').forEach((b) => (b.disabled = true)); });
 
 // ================================================================ Phím tắt & dọn dẹp
 document.addEventListener('keydown', (e) => {

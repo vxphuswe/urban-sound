@@ -31,9 +31,19 @@ const HALLUCINATIONS = [
   /amara\.org/i, /thanks for watching/i, /like và subscribe/i, /la la school/i, /bỏ lỡ những video hấp dẫn/i,
 ];
 
+// Whisper hay ghi chú thích không phải lời nói: *cười*, [Âm nhạc], (tiếng chó sủa), ♪…
+const NON_SPEECH = /\*[^*]*\*|\[[^\]]*\]|\([^)]*\)|[♪♫🎵🎶]+/g;
+const ONLY_SOUNDS = /^(âm nhạc|nhạc|music|cười|tiếng cười|vỗ tay|applause|laughter|tiếng (chó|mèo|gió|mưa|xe|ồn)[^.]*)[.!…]*$/i;
+
+export function cleanText(t) {
+  const s = String(t || '').replace(NON_SPEECH, ' ').replace(/\s+/g, ' ').trim();
+  if (!/[\p{L}\p{N}]/u.test(s) || ONLY_SOUNDS.test(s)) return '';
+  return s;
+}
+
 function clean(chunks) {
   return (chunks || [])
-    .map((c) => ({ start: c.timestamp?.[0] ?? 0, end: c.timestamp?.[1] ?? null, text: (c.text || '').trim() }))
+    .map((c) => ({ start: c.timestamp?.[0] ?? 0, end: c.timestamp?.[1] ?? null, text: cleanText(c.text) }))
     .filter((c) => c.text && !HALLUCINATIONS.some((r) => r.test(c.text)))
     .filter((c, i, arr) => i === 0 || c.text !== arr[i - 1].text);
 }
@@ -45,7 +55,7 @@ self.onmessage = async (e) => {
     self.postMessage({ type: 'status', text: 'Đang chuẩn bị mô hình phiên âm…' });
     const pipe = await getPipeline(url, model);
     self.postMessage({ type: 'status', text: 'Đang chuyển giọng nói thành văn bản…' });
-    const opts = { task: 'transcribe', chunk_length_s: 30, stride_length_s: 5, return_timestamps: true };
+    const opts = { task: 'transcribe', chunk_length_s: 30, stride_length_s: 5, return_timestamps: true, no_repeat_ngram_size: 4 };
     if (language && language !== 'auto') opts.language = language;
     const out = await pipe(audio, opts);
     const chunks = clean(out.chunks);

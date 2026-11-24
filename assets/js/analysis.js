@@ -68,6 +68,19 @@ export function groupScores(scores, offset, groupIndex) {
     }
     out[g.id] = m;
   }
+  return adjustCrowd(out);
+}
+
+/**
+ * Đám đông: khi nhiều người nói cùng lúc, YAMNet thường cho "Speech" cao còn "Crowd / Hubbub / Chatter"
+ * chỉ ở mức vừa phải → trước đây luôn ra "Tiếng người nói". Có đủ dấu hiệu đám đông thì đẩy nhóm đám đông lên.
+ */
+export function adjustCrowd(out) {
+  const c = out.crowd || 0, sp = out.speech || 0;
+  if (c >= 0.1 && sp >= 0.25) {
+    out.crowd = Math.min(0.95, Math.max(c, c * 1.8 + sp * 0.3));
+    if (c >= 0.2) out.speech = sp * 0.75;
+  }
   return out;
 }
 

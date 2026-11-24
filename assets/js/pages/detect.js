@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import { initLayout, $, $$, esc, toast, hydrateIcons } from '../ui.js';
 import { icon } from '../icons.js';
-import { ACCEPT, decodeToMono16k, Recorder, levelStats, micErrorMessage, captureTabAudio } from '../audio.js';
+import { ACCEPT, decodeToMono16k, Recorder, levelStats, micErrorMessage, captureTabAudio, encodeWav } from '../audio.js';
 import { loadClassifier, analyzeWave, classifierInfo } from '../classifier.js';
 import { envelope } from '../dsp.js';
 import { resultCard, healthBanner, levelSummary, referenceList, highlightReference, kindTone, borderTone } from '../render.js';
@@ -12,11 +12,30 @@ import { GROUP_BY_ID } from '../categories.js';
 initLayout();
 
 const state = { wave: null, name: '', source: 'file', analysis: null, entry: null, chunks: [], url: null, media: null };
-const SPEECHY = new Set(['speech', 'crowd', 'shout', 'laugh', 'children', 'tv', 'music', 'baby']);
+// Những loại có lời nói thật. Chó sủa, nhạc, em bé khóc… KHÔNG phiên âm (Whisper sẽ bịa ra chữ).
+const VOICE = new Set(['speech', 'crowd', 'shout', 'tv', 'children']);
+
+/** Các đoạn [bắt đầu, kết thúc] (giây) có tiếng người, nới 0,4 s hai đầu và gộp đoạn gần nhau. */
+function speechSegments() {
+  const tl = state.analysis?.result?.timeline || [];
+  const segs = tl.filter((t) => VOICE.has(t.id)).map((t) => [Math.max(0, t.start - 0.4), t.end + 0.4]).sort((a, b) => a[0] - b[0]);
+  const out = [];
+  for (const sg of segs) {
+    const last = out[out.length - 1];
+    if (last && sg[0] - last[1] < 1.2) last[1] = Math.max(last[1], sg[1]); else out.push([...sg]);
+  }
+  return out;
+}
 
 $('#ref-list').innerHTML = referenceList();
 $('#file-input').accept = ACCEPT;
-$('#tr-model').innerHTML = CONFIG.ASR_MODELS.map((m) => `<option value="${m.id}" ${m.id === CONFIG.ASR_DEFAULT ? 'selected' : ''}>${m.label} (${m.size})</option>`).join('');
+// Tiếng Việt: bản "small" chính xác hơn hẳn; máy tính đủ RAM dùng mặc định, điện thoại dùng "base" cho nhẹ
+const ASR_PICK = (() => {
+  try { const v = localStorage.getItem('tp.asrModel'); if (CONFIG.ASR_MODELS.some((m) => m.id === v)) return v; } catch { /* bỏ qua */ }
+  return (navigator.deviceMemory ?? 8) >= 4 && !/Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'Xenova/whisper-small' : CONFIG.ASR_DEFAULT;
+})();
+$('#tr-model').innerHTML = CONFIG.ASR_MODELS.map((m) => `<option value="${m.id}" ${m.id === ASR_PICK ? 'selected' : ''}>${m.label} (${m.size})</option>`).join('');
+$('#tr-model').addEventListener('change', (e) => { try { localStorage.setItem('tp.asrModel', e.target.value); } catch { /* bỏ qua */ } });
 $('#opt-denoise').checked = CONFIG.DENOISE_DEFAULT;
 
 // ---------------------------------------------------------------- Tab
@@ -64,6 +83,12 @@ function movePlayhead() {
   if (!state.media || !state.wave) return;
   const d = state.wave.length / 16000;
   $('#playhead').style.left = `${Math.min(100, (state.media.currentTime / d) * 100)}%`;
+  // tô sáng câu đang phát (giống phụ đề karaoke)
+  const t = state.media.currentTime;
+  $$('#tr-out .tr-line').forEach((el, i) => {
+    const c = state.chunks[i];
+    el.classList.toggle('on', !!c && t >= c.start && t < (c.end ?? c.start + 3));
+  });
 }
 
 // ---------------------------------------------------------------- Ghi âm
@@ -269,10 +294,10 @@ async function run(blob, { name, source }) {
       conf: result.top?.conf ?? 0, kind: result.top?.kind, icon: result.top?.icon, status: result.status,
       levelDb: Math.round(lv.avg), peakDb: Math.round(lv.max), duration: Math.round(meta.duration * 10) / 10,
       alts: result.alternatives.map((a) => a.vi),
-    });
+    }, { audio: blob.size > 25 * 1048576 ? new Blob([encodeWav(wave)], { type: 'audio/wav' }) : blob, audioName: blob.size > 25 * 1048576 ? name.replace(/\.[^.]+$/, '') + '.wav' : name });
     bindResultActions();
     $('#tr-run').disabled = false;
-    const speechy = [result.top, ...result.alternatives].some((a) => a && SPEECHY.has(a.id) && a.conf >= 35);
+    const speechy = speechSegments().reduce((n, [a, b]) => n + b - a, 0) >= 1.2;
     $('#phien-am').hidden = false;
     if ($('#opt-asr').checked && speechy) runTranscribe();
     else if (!speechy) $('#tr-out').innerHTML = `<div class="empty">${icon('info', { size: 30 })}Đoạn này không có người nói rõ ràng nên không cần chuyển thành chữ. Nếu vẫn muốn thử, bấm “Phiên âm”.</div>`;
@@ -286,6 +311,10 @@ async function run(blob, { name, source }) {
 
 function render(r, meta, lv) {
   $('#result').innerHTML = resultCard(r, lv);
+  if (meta.personal) {
+    const p = meta.personal;
+    $('#result').insertAdjacentHTML('afterbegin', `<div class="personal-hit">${icon(p.icon || 'star', { size: 26 })}<div><small>Giống âm thanh bạn đã dạy</small><b>${esc(p.vi)}</b></div><span class="mono">${Math.round(p.prob * 100)}%</span><a class="link" href="du-lieu.html">Quản lý</a></div>`);
+  }
   if (meta.demo) $('#result').insertAdjacentHTML('afterbegin', `<div class="notice notice-warn" style="margin-bottom:12px">${icon('info')}<div><b>Chế độ demo giao diện</b> – kết quả là giả lập. Bỏ <code>?demo</code> trên địa chỉ để dùng mô hình thật.</div></div>`);
   if (meta.truncated) toast(`File dài, chỉ phân tích ${CONFIG.MAX_ANALYZE_SEC / 60} phút đầu.`);
 
@@ -369,18 +398,29 @@ function resetTranscript() {
   $('#tr-run').disabled = true;
 }
 
-async function runTranscribe() {
+async function runTranscribe(e) {
   if (!state.wave) return;
+  const manual = !!e?.type; // bấm nút "Phiên âm" = người dùng muốn thử cả khi không thấy tiếng người
+  const dur = state.wave.length / 16000;
+  let segs = speechSegments().map(([a, b]) => [a, Math.min(dur, b)]);
+  if (!segs.length) {
+    if (!manual) return;
+    segs = [[0, dur]];
+  }
   $('#tr-run').disabled = true;
   $('#tr-status').hidden = false;
   $('#tr-status-text').textContent = 'Đang chuẩn bị mô hình phiên âm…';
   $('#tr-bar').style.width = '0%';
   $('#tr-bar').parentElement.classList.add('indet');
   try {
-    const out = await transcribe(state.wave, {
+    const all = [];
+    for (let i = 0; i < segs.length; i++) {
+    const [a, b] = segs[i];
+    const piece = state.wave.subarray(Math.floor(a * 16000), Math.ceil(b * 16000));
+    const out = await transcribe(piece, {
       model: $('#tr-model').value,
       language: $('#tr-lang').value,
-      onStatus: (t) => ($('#tr-status-text').textContent = t),
+      onStatus: (t) => ($('#tr-status-text').textContent = segs.length > 1 ? `${t} (đoạn ${i + 1}/${segs.length})` : t),
       onLoad: (d) => {
         $('#tr-bar').parentElement.classList.remove('indet');
         $('#tr-bar').style.width = `${Math.round(d.progress * 100)}%`;
@@ -388,9 +428,12 @@ async function runTranscribe() {
         if (d.progress >= 1) $('#tr-bar').parentElement.classList.add('indet');
       },
     });
-    state.chunks = out.chunks;
+    for (const c of out.chunks) all.push({ ...c, start: c.start + a, end: c.end != null ? c.end + a : null });
+    }
+    state.chunks = all;
     renderTranscript();
-    if (state.entry && out.text) updateEntry(state.entry.id, { transcript: out.text.slice(0, 5000) });
+    const text = all.map((c) => c.text).join(' ').trim();
+    if (state.entry && text) updateEntry(state.entry.id, { transcript: text.slice(0, 5000) });
   } catch (e) {
     console.error(e);
     $('#tr-out').innerHTML = `<div class="empty">${icon('alert', { size: 30 })}Không phiên âm được: ${esc(e.message)}<br><small>Kiểm tra kết nối mạng (lần đầu cần tải mô hình) hoặc thử chế độ “Nhanh”.</small></div>`;
@@ -406,7 +449,8 @@ function renderTranscript() {
     $('#tr-out').innerHTML = `<div class="empty">${icon('info', { size: 30 })}Không nghe thấy lời nói rõ ràng trong đoạn này.</div>`;
     return;
   }
-  $('#tr-out').innerHTML = state.chunks.map((c) => `<div class="tr-line" data-t="${c.start}"><span class="mono">${formatTime(c.start)}</span><span>${esc(c.text)}</span></div>`).join('');
+  $('#tr-out').innerHTML = `<div class="tr-sheet">${state.chunks.map((c) => `<button type="button" class="tr-line" data-t="${c.start}" title="Bấm để nghe lại đoạn này"><span class="tr-time mono">${icon('play', { size: 11 })}${formatTime(c.start)}</span><span class="tr-text">${esc(c.text)}</span></button>`).join('')}</div>
+    <p class="muted" style="font-size:.78rem;margin:10px 2px 0">Chỉ phiên âm những đoạn AI nghe thấy tiếng người. Bấm một dòng để nghe lại đúng đoạn đó.</p>`;
   $$('#tr-out .tr-line').forEach((el) => el.addEventListener('click', () => { if (state.media) { state.media.currentTime = Number(el.dataset.t); state.media.play().catch(() => {}); } }));
   ['#tr-copy', '#tr-txt', '#tr-srt'].forEach((s) => ($(s).disabled = false));
 }

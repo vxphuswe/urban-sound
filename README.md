@@ -142,3 +142,27 @@ Xem [training/README.md](training/README.md). Tóm tắt: thu mẫu ở trang **
 - Phụ đề trực tiếp dùng Web Speech API: tốt nhất trên Chrome/Edge, chưa hỗ trợ Firefox.
 
 Nguồn mô hình & dữ liệu: YAMNet (Google, Apache 2.0), Whisper (OpenAI, MIT), Transformers.js, TensorFlow.js, UrbanSound8K & ESC-50 (CC BY-NC 3.0).
+
+
+## Cập nhật tháng 11/2026
+
+### Đăng nhập Google hiện tên web thay vì "…supabase.co"
+1. Google Cloud → APIs & Services → Credentials → mở OAuth client loại **Web application** đang dùng cho Supabase.
+2. Ở **Authorized JavaScript origins** thêm `https://urban-sound-ai.vercel.app` (và `http://localhost:5678` nếu chạy máy).
+3. Chép **Client ID** (dạng `…apps.googleusercontent.com`) vào `GOOGLE_CLIENT_ID` trong `assets/js/config.js`.
+4. Supabase → Authentication → Providers → Google: Client ID này phải nằm trong ô **Client IDs** (đã có nếu đây đúng là client bạn dùng cho Supabase).
+5. Google Auth Platform → **Branding**: đặt tên ứng dụng "Urban Sound" và logo để cửa sổ Google hiển thị đẹp.
+
+Để trống `GOOGLE_CLIENT_ID` thì web dùng lại cách đăng nhập cũ.
+
+### Kho mẫu chung của nhóm
+Trang **Âm thanh của tôi** (`du-lieu.html`) có nút "Gửi lên kho chung". Chạy một lần file `supabase/samples.sql` trong Supabase → SQL Editor để tạo kho `samples`. Mẫu của mọi người nằm ở Supabase → Storage → samples.
+
+### Tính năng mới
+- **Âm thanh của tôi**: thu và lưu mẫu (IndexedDB, mở lại web vẫn còn), dạy AI nhận âm thanh riêng bằng so khớp embedding YAMNet (few-shot, cosine), nghe lại/đổi nhãn/tải .zip.
+- **Lịch sử**: lưu kèm file âm thanh (trực tiếp lưu 3 giây quanh lúc phát hiện) – nghe lại, tải từng file hoặc tải tất cả.
+- **Trực tiếp**: "Bắt đầu nghe" tự bật camera (một lần hỏi quyền), quay video 1080p/720p, phụ đề đẹp hơn + bản ghi lời nói (.txt/.srt).
+- **Phiên âm**: chỉ phiên âm đoạn có tiếng người, lọc chú thích kiểu *cười*, [nhạc]; mặc định Whisper small trên máy tính.
+- **Đám đông**: quy tắc kết hợp Speech + Crowd/Hubbub của YAMNet.
+- **Hành trình nghe**: bộ sưu tập âm thanh, chuỗi ngày, huy hiệu (trang chủ).
+- **Minh họa động** cho từng loại âm thanh (`assets/js/scenes.js`); có thể thay bằng ảnh/video thật – xem `assets/media/sounds/README.md`.

@@ -14,8 +14,25 @@ export class Camera {
   /** Camera trước được lật ngang như gương, camera sau giữ nguyên. */
   get mirror() { return this.facing !== 'environment'; }
 
+  /** Ràng buộc video dùng chung (cũng dùng khi xin quyền micro + camera một lần). */
+  constraints(facing = this.facing) {
+    return { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 30 }, facingMode: { ideal: facing } };
+  }
+
+  /** Nhận luồng video đã xin sẵn. */
+  async adopt(stream) {
+    this.stop();
+    this.stream = stream;
+    const st = stream.getVideoTracks()[0]?.getSettings?.() || {};
+    this.facing = st.facingMode || this.facing;
+    this.video.srcObject = stream;
+    this.video.muted = true;
+    await this.video.play().catch(() => {});
+    return this;
+  }
+
   async start(facing = this.facing) {
-    const base = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } };
+    const base = { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 30 } };
     this.stop(); // nhiều điện thoại không mở được 2 camera cùng lúc
     let stream;
     try {

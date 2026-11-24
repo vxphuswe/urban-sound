@@ -132,3 +132,12 @@ test('bỏ qua nhóm đang bị chặn (còi báo của chính web)', () => {
   const o = st.push({ alarm: 0.9, speech: 0.3 }, true, 0, { alarm: 0.9, speech: 0.35 }, new Set(['alarm']));
   assert.equal(o.confirmed?.id, 'speech');
 });
+
+test('đám đông: Speech cao + Hubbub vừa phải → nhóm đám đông vượt tiếng người nói', async () => {
+  const { adjustCrowd } = await import('../assets/js/analysis.js');
+  const out = adjustCrowd({ speech: 0.7, crowd: 0.3 });
+  assert.ok(out.crowd > out.speech, JSON.stringify(out));
+  const one = adjustCrowd({ speech: 0.8, crowd: 0.03 });
+  assert.equal(one.crowd, 0.03); // một người nói: không đổi
+  assert.equal(one.speech, 0.8);
+});

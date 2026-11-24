@@ -6,7 +6,7 @@ export const FAQ = [
   ['Âm thanh của tôi có bị gửi lên máy chủ không?', 'Không. Việc nhận diện, đo độ ồn và phiên âm từ file đều chạy ngay trên trình duyệt của bạn. Chỉ có tính năng “Phụ đề trực tiếp” dùng dịch vụ nhận dạng giọng nói có sẵn của trình duyệt.'],
   ['Số dB có chính xác không?', 'Đó là ước tính. Micro điện thoại và laptop không được hiệu chuẩn như máy đo chuyên dụng nên có thể lệch vài dB. Phù hợp để so sánh các nơi và phát hiện chỗ quá ồn, không dùng cho công việc pháp lý.'],
   ['Khi nào web hiện cảnh báo màu đỏ?', 'Chỉ khi nghe thấy âm thanh nguy hiểm thực sự (súng, nổ, còi hú, chuông báo cháy, kính vỡ) hoặc khi mức ồn rất cao có thể hại tai. Trẻ em nô đùa, âm nhạc, tiếng nói hiện màu xanh.'],
-  ['Kết quả sai thì làm sao?', 'Thử ghi lại gần nguồn âm hơn, dài hơn 3 giây, bật “Lọc tạp âm nền” hoặc giảm độ nhạy xuống “Thấp”. Bạn cũng có thể góp mẫu đúng ở trang “Đóng góp dữ liệu” để nhóm huấn luyện lại mô hình.'],
+  ['Kết quả sai thì làm sao?', 'Thử ghi lại gần nguồn âm hơn, dài hơn 3 giây, bật “Lọc tạp âm nền” hoặc giảm độ nhạy xuống “Thấp”. Bạn cũng có thể thu vài mẫu ở trang “Âm thanh của tôi” để AI nhận ra âm thanh đó, hoặc gửi mẫu để nhóm huấn luyện lại mô hình.'],
   ['Vì sao cần đăng nhập?', 'Không bắt buộc. Đăng nhập (Google, Apple hoặc mã qua email) chỉ để lưu lịch sử và danh sách yêu thích trên mọi thiết bị.'],
 ];
 

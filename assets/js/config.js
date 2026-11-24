@@ -10,6 +10,9 @@ export const CONFIG = {
   SUPABASE_ANON_KEY: 'sb_publishable_cik7QoBVaULXndxS5EB9Lw_1qiv2Bk4',
   // Nút đăng nhập hiển thị. Apple cần tài khoản Apple Developer (trả phí) – để false nếu chưa có.
   AUTH_PROVIDERS: { google: true, apple: false },
+  // Client ID loại "Web application" trong Google Cloud (dạng 1234-abc.apps.googleusercontent.com) – là thông tin công khai.
+  // Điền vào thì nút Google mở cửa sổ đăng nhập ghi tên web của bạn thay vì "...supabase.co". Để trống = cách cũ.
+  GOOGLE_CLIENT_ID: '',
 
   // ---- Mô hình nhận diện (YAMNet, 521 loại âm thanh của Google AudioSet)
   // Thử lần lượt: bản tự host trong /models/yamnet (chạy tools/download_yamnet.mjs) rồi tới TF Hub.
@@ -32,7 +35,7 @@ export const CONFIG = {
   ASR_MODELS: [
     { id: 'Xenova/whisper-tiny', label: 'Nhanh', size: '~40 MB' },
     { id: 'Xenova/whisper-base', label: 'Cân bằng', size: '~80 MB' },
-    { id: 'Xenova/whisper-small', label: 'Chính xác hơn', size: '~250 MB' },
+    { id: 'Xenova/whisper-small', label: 'Chính xác nhất cho tiếng Việt', size: '~250 MB' },
   ],
   ASR_DEFAULT: 'Xenova/whisper-base',
 

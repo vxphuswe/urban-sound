@@ -95,3 +95,51 @@ export async function signOut() {
   if (sb) await sb.auth.signOut();
   setDemoUser(null);
 }
+
+// ------------------------------------------------------------------ Google Identity Services
+// Đăng nhập Google ngay trên trang web (popup của Google ghi tên web/tên miền của bạn thay vì "…supabase.co").
+// Cần CONFIG.GOOGLE_CLIENT_ID (Client ID loại Web trong Google Cloud) – xem README, mục "Đăng nhập Google".
+export function hasGoogleGis() { return Boolean(CONFIG.GOOGLE_CLIENT_ID) && hasSupabase(); }
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return window.google?.accounts?.id ? resolve() : setTimeout(resolve, 500);
+    const sc = document.createElement('script');
+    sc.src = src; sc.async = true; sc.onload = resolve; sc.onerror = () => reject(new Error('Không tải được thư viện đăng nhập Google.'));
+    document.head.appendChild(sc);
+  });
+}
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Vẽ nút "Tiếp tục với Google" chính thức vào `el`. onDone(user) khi đăng nhập xong. */
+export async function renderGoogleButton(el, { onDone, onError } = {}) {
+  await loadScript('https://accounts.google.com/gsi/client');
+  const raw = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const hashed = await sha256hex(raw);
+  window.google.accounts.id.initialize({
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    nonce: hashed,
+    ux_mode: 'popup',
+    use_fedcm_for_prompt: true,
+    callback: async (resp) => {
+      try {
+        const sb = await supabase();
+        const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw });
+        if (error) throw error;
+        cachedUser = mapUser(data.user);
+        listeners.forEach((fn) => fn(cachedUser));
+        onDone?.(cachedUser);
+      } catch (e) {
+        onError?.(new Error(/audience|client/i.test(e.message || '') ? 'Supabase chưa chấp nhận Client ID này. Thêm Client ID vào Supabase → Authentication → Providers → Google.' : (e.message || String(e))));
+      }
+    },
+  });
+  window.google.accounts.id.renderButton(el, {
+    type: 'standard', theme: document.documentElement.dataset.theme === 'light' ? 'outline' : 'filled_black',
+    size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', locale: 'vi', width: Math.min(400, Math.max(220, el.clientWidth || 320)),
+  });
+}
