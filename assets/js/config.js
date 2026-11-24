@@ -12,7 +12,7 @@ export const CONFIG = {
   AUTH_PROVIDERS: { google: true, apple: false },
   // Client ID loại "Web application" trong Google Cloud (dạng 1234-abc.apps.googleusercontent.com) – là thông tin công khai.
   // Điền vào thì nút Google mở cửa sổ đăng nhập ghi tên web của bạn thay vì "...supabase.co". Để trống = cách cũ.
-  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_ID: '910141201129-tpjhablh18628ptunfdba5sti75tp18f.apps.googleusercontent.com',
 
   // ---- Mô hình nhận diện (YAMNet, 521 loại âm thanh của Google AudioSet)
   // Thử lần lượt: bản tự host trong /models/yamnet (chạy tools/download_yamnet.mjs) rồi tới TF Hub.
