@@ -16,7 +16,8 @@ export class Camera {
 
   /** Ràng buộc video dùng chung (cũng dùng khi xin quyền micro + camera một lần). */
   constraints(facing = this.facing) {
-    return { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 30 }, facingMode: { ideal: facing } };
+    const big = !isMobile(); // điện thoại: 720p cho mượt, máy tính: 1080p
+    return { width: { ideal: big ? 1920 : 1280 }, height: { ideal: big ? 1080 : 720 }, frameRate: { ideal: 30, max: 30 }, facingMode: { ideal: facing } };
   }
 
   /** Nhận luồng video đã xin sẵn. */
@@ -32,7 +33,7 @@ export class Camera {
   }
 
   async start(facing = this.facing) {
-    const base = { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 30 } };
+    const { facingMode: _f, ...base } = this.constraints(facing);
     this.stop(); // nhiều điện thoại không mở được 2 camera cùng lúc
     let stream;
     try {

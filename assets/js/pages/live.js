@@ -92,7 +92,13 @@ const autocam = $('#opt-autocam');
 try { autocam.checked = localStorage.getItem('tp.autocam') !== '0'; } catch { /* bỏ qua */ }
 autocam.addEventListener('change', () => { try { localStorage.setItem('tp.autocam', autocam.checked ? '1' : '0'); } catch { /* bỏ qua */ } });
 $('#cooldown').addEventListener('input', (e) => { stab.cooldown = Number(e.target.value); $('#cd-v').textContent = `${e.target.value} giây`; });
-$('#alarm-vol').addEventListener('input', (e) => { $('#alarm-vol-v').textContent = `${e.target.value}%`; Siren.setVolume(); });
+try {
+  const av = localStorage.getItem('tp.alarmVol2'), as = localStorage.getItem('tp.alarmSound');
+  if (av) { $('#alarm-vol').value = av; $('#alarm-vol-v').textContent = `${av}%`; }
+  if (as && [...$('#alarm-sound').options].some((o) => o.value === as)) $('#alarm-sound').value = as;
+} catch { /* bỏ qua */ }
+$('#alarm-vol').addEventListener('input', (e) => { $('#alarm-vol-v').textContent = `${e.target.value}%`; Siren.setVolume(); try { localStorage.setItem('tp.alarmVol2', e.target.value); } catch { /* bỏ qua */ } });
+$('#alarm-sound').addEventListener('change', (e) => { try { localStorage.setItem('tp.alarmSound', e.target.value); } catch { /* bỏ qua */ } });
 
 async function refreshMics() {
   const ms = await listMics();
@@ -426,6 +432,7 @@ function drawMeterChart() {
 
 // ================================================================ Lớp hình ảnh: phổ âm thanh, camera, ghi hình
 const FRAME_MS = 1000 / 30;
+const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches;
 const short = (vi) => vi.replace(/ \(.*\)/, '').replace(/,.*$/, '');
 
 function hudTone() {
@@ -449,7 +456,8 @@ function ensureView() {
       return;
     }
     requestAnimationFrame(frame);
-    if (t - last < FRAME_MS - 3) return;
+    // Điện thoại: lớp chữ vẽ 15 khung/giây là đủ (video vẫn 30 khung/giây); khi quay thì 30
+    if (t - last < (MOBILE && !Rec.on ? 66 : FRAME_MS - 3)) return;
     last = t;
     if (S.running && S.mic?.analyser) scope.update(S.mic.analyser, { muted: S.muted, color: toneColor(hudTone() === 'gray' ? 'accent' : hudTone()) });
     if (cam.on || Rec.on) drawCam(); else drawStrip();
@@ -506,28 +514,32 @@ function drawCam() {
     rg.setTransform(rc.width / Rec.W, 0, 0, rc.height / Rec.H, 0, 0);
     drawScene(rg, Rec.W, Rec.H);
     const f = fitCanvas(disp);
-    if (f) { f.g.imageSmoothingQuality = 'high'; f.g.drawImage(rc, 0, 0, f.w, f.h); }
+    if (f) { f.g.clearRect(0, 0, f.w, f.h); drawScene(f.g, f.w, f.h, cam.ready || cam.on); }
     return;
   }
-  const f = fitCanvas(disp);
-  if (f) drawScene(f.g, f.w, f.h);
+  const f = fitCanvas(disp, MOBILE ? 1.5 : 2);
+  if (f) drawScene(f.g, f.w, f.h, cam.ready || cam.on);
 }
 
-function drawScene(g, W, H) {
+function drawScene(g, W, H, overlay = false) {
   const now = performance.now();
   const h = S.hud;
   const tone = hudTone(), col = toneColor(tone);
   const k = W < 460 ? 0.82 : 1; // thu nhỏ chữ trên điện thoại
 
-  // --- nền: hình camera (trước thì lật gương) hoặc nền tối khi chỉ quay âm thanh
-  g.fillStyle = '#050808'; g.fillRect(0, 0, W, H);
-  if (cam.ready) {
+  // --- nền: hình camera (trước thì lật gương) hoặc nền tối khi chỉ quay âm thanh.
+  // Trên màn hình (overlay) KHÔNG vẽ lại hình camera: thẻ <video> bên dưới tự phát mượt bằng GPU,
+  // canvas chỉ vẽ lớp chữ trong suốt → điện thoại không còn giật.
+  if (overlay) g.clearRect(0, 0, W, H); else { g.fillStyle = '#050808'; g.fillRect(0, 0, W, H); }
+  if (cam.ready && !overlay) {
     const v = cam.video, sc = Math.max(W / v.videoWidth, H / v.videoHeight);
     const dw = v.videoWidth * sc, dh = v.videoHeight * sc;
     g.save();
     if (cam.mirror) { g.translate(W, 0); g.scale(-1, 1); }
     g.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
     g.restore();
+  } else if (overlay && cam.on) {
+    g.clearRect(0, 0, W, H); // camera đang khởi động: thẻ video bên dưới tự hiện
   } else {
     const grd = g.createRadialGradient(W / 2, H * 0.35, 10, W / 2, H * 0.35, Math.max(W, H) * 0.7);
     grd.addColorStop(0, '#15221f');
@@ -637,6 +649,7 @@ function updateVisual() {
   if (matchMedia('(max-width: 640px)').matches) stage.style.setProperty('--ar', '3 / 4');
   else stage.style.setProperty('--ar', cam.ready ? `${vid.videoWidth} / ${vid.videoHeight}` : '16 / 9');
   $('#btn-snap').hidden = !v;
+  vid.classList.toggle('mirror', cam.on && cam.mirror);
 }
 cam.video.addEventListener('loadedmetadata', updateVisual);
 cam.video.addEventListener('resize', updateVisual);
@@ -688,7 +701,12 @@ function download(blob, name) {
 }
 
 $('#btn-snap').addEventListener('click', () => {
-  $('#cam-canvas').toBlob((b) => { if (b) { download(b, `urban-sound-${fileStamp()}.png`); toast('Đã lưu ảnh.'); } }, 'image/png');
+  // Ảnh chụp = hình camera + lớp kết quả, độ phân giải cao
+  const disp = $('#cam-canvas'), W = disp.clientWidth || 1280, H = disp.clientHeight || 720;
+  const sc = Math.max(1, 1920 / Math.max(W, H)), shot = document.createElement('canvas');
+  shot.width = Math.round(W * sc); shot.height = Math.round(H * sc);
+  const sg = shot.getContext('2d'); sg.setTransform(sc, 0, 0, sc, 0, 0); drawScene(sg, W, H, false);
+  shot.toBlob((b) => { if (b) { download(b, `urban-sound-${fileStamp()}.png`); toast('Đã lưu ảnh.'); } }, 'image/png');
 });
 
 // ---------------------------------------------------------------- Ghi hình (khung hình + lớp kết quả + âm thanh micro)
@@ -812,30 +830,55 @@ $('#log-csv').addEventListener('click', () => {
 
 // ================================================================ Âm báo (tổng hợp bằng Web Audio, không cần file)
 const Siren = {
-  ctx: null, gain: null, timer: null, kind: 'fire',
-  vol() { return (Number($('#alarm-vol').value) / 100) * 0.3; },
+  ctx: null, gain: null, comp: null, timer: null, kind: 'fire',
+  // Âm lượng thật: thanh trượt 0–100% → 0–1.0, qua bộ nén để to và đều như còi báo thật
+  vol() { return Math.pow(Number($('#alarm-vol').value) / 100, 1.3); },
   setVolume() { if (this.gain) this.gain.gain.value = this.vol(); },
-  tone(freq, start, dur, type = 'sine') {
+  ensure() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.comp = this.ctx.createDynamicsCompressor();
+      this.comp.threshold.value = -18; this.comp.knee.value = 6; this.comp.ratio.value = 8;
+      this.comp.attack.value = 0.002; this.comp.release.value = 0.1;
+      this.post = this.ctx.createGain(); this.post.gain.value = 2.2; // bù lại sau khi nén → to hơn hẳn
+      this.comp.connect(this.post).connect(this.ctx.destination);
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  },
+  /** Điện thoại chỉ cho phát âm thanh sau một lần chạm → "mở khóa" ngay khi người dùng bấm bất kỳ đâu. */
+  unlock() {
+    try {
+      const c = this.ensure();
+      const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource();
+      src.buffer = b; src.connect(c.destination); src.start(0);
+    } catch { /* bỏ qua */ }
+  },
+  tone(freq, start, dur, type = 'square', to = null) {
     const o = this.ctx.createOscillator(), env = this.ctx.createGain();
-    o.type = type; o.frequency.value = freq;
+    o.type = type; o.frequency.setValueAtTime(freq, start);
+    if (to) o.frequency.linearRampToValueAtTime(to, start + dur);
     env.gain.setValueAtTime(0.0001, start);
-    env.gain.exponentialRampToValueAtTime(1, start + 0.02);
-    env.gain.setValueAtTime(1, start + dur - 0.03);
+    env.gain.exponentialRampToValueAtTime(1, start + 0.01);
+    env.gain.setValueAtTime(1, start + dur - 0.02);
     env.gain.exponentialRampToValueAtTime(0.0001, start + dur);
     o.connect(env).connect(this.gain);
     o.start(start); o.stop(start + dur + 0.02);
   },
   cycle() {
-    const t = this.ctx.currentTime + 0.05;
+    const t = this.ctx.currentTime + 0.03;
     let len;
-    if (this.kind === 'fire') {        // kiểu chuông báo cháy (3 tiếng bíp rồi nghỉ)
-      for (let i = 0; i < 3; i++) this.tone(3000, t + i, 0.5);
+    if (this.kind === 'fire') {        // chuông báo cháy chuẩn T3: 3 hồi 0,5 s, hai tần số chói (rất dễ nghe)
+      for (let i = 0; i < 3; i++) { this.tone(3150, t + i, 0.5, 'square'); this.tone(2900, t + i, 0.5, 'sawtooth'); }
       len = 4;
+    } else if (this.kind === 'wail') {  // còi hú khẩn cấp: quét lên xuống liên tục
+      this.tone(650, t, 1.2, 'sawtooth', 1500); this.tone(1500, t + 1.2, 1.2, 'sawtooth', 650);
+      len = 2.4;
     } else if (this.kind === 'hilo') { // còi hai tông
-      for (let i = 0; i < 4; i++) this.tone(i % 2 ? 770 : 960, t + i * 0.5, 0.48, 'triangle');
+      for (let i = 0; i < 4; i++) this.tone(i % 2 ? 770 : 960, t + i * 0.5, 0.48, 'square');
       len = 2;
     } else {                           // bíp nhẹ
-      this.tone(880, t, 0.15); this.tone(880, t + 0.25, 0.15);
+      this.tone(880, t, 0.15, 'sine'); this.tone(880, t + 0.25, 0.15, 'sine');
       len = 2;
     }
     S.selfSoundUntil = performance.now() + len * 1000 + 300;
@@ -846,11 +889,10 @@ const Siren = {
     this.kind = kind || $('#alarm-sound').value;
     if (this.kind === 'off') return;
     try {
-      this.ctx = this.ctx || new AudioContext();
-      this.ctx.resume();
+      this.ensure();
       this.gain = this.ctx.createGain();
-      this.gain.gain.value = this.vol();
-      this.gain.connect(this.ctx.destination);
+      this.gain.gain.value = this.kind === 'beep' ? Math.min(0.5, this.vol()) : this.vol();
+      this.gain.connect(this.comp);
       const loopSound = () => { const len = this.cycle(); this.timer = setTimeout(loopSound, len * 1000); };
       loopSound();
     } catch { /* trình duyệt không cho phát âm thanh */ }
@@ -861,10 +903,11 @@ const Siren = {
     this.gain = null;
   },
 };
+document.addEventListener('pointerdown', () => Siren.unlock(), { once: true });
 
 $('#alarm-test').addEventListener('click', () => {
   Siren.start();
-  setTimeout(() => Siren.stop(), Siren.kind === 'fire' ? 3600 : 2000);
+  setTimeout(() => Siren.stop(), Siren.kind === 'fire' ? 3600 : Siren.kind === 'wail' ? 2500 : 2000);
 });
 
 // ================================================================ Báo động toàn màn hình

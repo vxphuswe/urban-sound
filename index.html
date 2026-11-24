@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e0d">
   <meta property="og:title" content="Urban Sound – Nhận diện âm thanh đô thị, đo độ ồn và phiên âm">
   <meta property="og:description" content="Bấm nút, Urban Sound nghe giúp bạn: đây là tiếng gì, ồn cỡ nào, có hại tai không. Nhận diện hơn 40 nhóm âm thanh, đo decibel và phiên âm ngay trên trình duyệt.">
-  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
@@ -20,7 +20,14 @@
   <header id="site-header"></header>
   <main id="main">
     <section class="hero hero-night">
+      <div class="sky" aria-hidden="true">
+        <div class="sun"><i></i></div>
+        <div class="moon"></div>
+        <div class="stars" id="stars"></div>
+        <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+      </div>
       <svg class="skyline" id="skyline" viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+      <div class="bubbles" id="bubbles" aria-hidden="true"></div>
       <div class="container hero-grid">
         <div class="reveal">
           <span class="eyebrow">AI nghe âm thanh đô thị</span>
@@ -101,12 +108,12 @@
       <div class="container">
         <div class="section-head reveal"><span class="eyebrow">Tính năng</span><h2>Mọi thứ về âm thanh quanh bạn</h2></div>
         <div class="grid-3">
-          <a class="card card-hover feature reveal" href="nhan-dien.html"><span class="feature-ic"><span data-icon="wave" data-size="22"></span></span><h3>Nhận diện file & video</h3><p>Tải lên bản ghi âm hoặc video, xem từng âm thanh xuất hiện ở giây thứ mấy.</p><span class="link">Thử ngay <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal reveal-d1" href="truc-tiep.html"><span class="feature-ic"><span data-icon="mic" data-size="22"></span></span><h3>Giám sát trực tiếp + đo ồn</h3><p>Nghe liên tục, đo decibel theo thời gian thực, báo bằng âm thanh và rung khi có còi hú, kính vỡ, em bé khóc…</p><span class="link">Bật micro <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal reveal-d2" href="do-on.html"><span class="feature-ic"><span data-icon="gauge" data-size="22"></span></span><h3>Máy đo decibel</h3><p>Đồng hồ đo độ ồn theo thời gian thực, so sánh với tiếng quen thuộc.</p><span class="link">Đo độ ồn <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal" href="nhan-dien.html#phien-am"><span class="feature-ic"><span data-icon="text" data-size="22"></span></span><h3>Phiên âm lời nói</h3><p>Chuyển giọng nói trong file, ghi âm, video thành văn bản tiếng Việt, xuất .txt/.srt.</p><span class="link">Phiên âm <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal reveal-d1" href="suc-khoe.html"><span class="feature-ic"><span data-icon="shield" data-size="22"></span></span><h3>Cảnh báo sức khỏe</h3><p>Biết ngay mức ồn có hại tai không và nên tiếp xúc tối đa bao lâu mỗi ngày.</p><span class="link">Tìm hiểu <span data-icon="arrow" data-size="16"></span></span></a>
-          <a class="card card-hover feature reveal reveal-d2" href="du-lieu.html"><span class="feature-ic"><span data-icon="database" data-size="22"></span></span><h3>Dạy AI âm thanh của bạn</h3><p>Thu 3–5 mẫu chuông cửa, tiếng rao quen… lần sau AI gọi đúng tên bạn đặt. Mẫu được lưu lại để nghe, tải về.</p><span class="link">Thử dạy AI <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal" href="nhan-dien.html"><span class="feature-ic anim-eq"><span data-icon="wave" data-size="22"></span></span><h3>Nhận diện file & video</h3><p>Tải lên bản ghi âm hoặc video, xem từng âm thanh xuất hiện ở giây thứ mấy.</p><span class="link">Thử ngay <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d1" href="truc-tiep.html"><span class="feature-ic anim-ring"><span data-icon="mic" data-size="22"></span></span><h3>Giám sát trực tiếp + đo ồn</h3><p>Nghe liên tục, đo decibel theo thời gian thực, báo bằng âm thanh và rung khi có còi hú, kính vỡ, em bé khóc…</p><span class="link">Bật micro <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d2" href="do-on.html"><span class="feature-ic anim-swing"><span data-icon="gauge" data-size="22"></span></span><h3>Máy đo decibel</h3><p>Đồng hồ đo độ ồn theo thời gian thực, so sánh với tiếng quen thuộc.</p><span class="link">Đo độ ồn <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal" href="nhan-dien.html#phien-am"><span class="feature-ic anim-type"><span data-icon="text" data-size="22"></span></span><h3>Phiên âm lời nói</h3><p>Chuyển giọng nói trong file, ghi âm, video thành văn bản tiếng Việt, xuất .txt/.srt.</p><span class="link">Phiên âm <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d1" href="suc-khoe.html"><span class="feature-ic anim-beat"><span data-icon="shield" data-size="22"></span></span><h3>Cảnh báo sức khỏe</h3><p>Biết ngay mức ồn có hại tai không và nên tiếp xúc tối đa bao lâu mỗi ngày.</p><span class="link">Tìm hiểu <span data-icon="arrow" data-size="16"></span></span></a>
+          <a class="card card-hover feature reveal reveal-d2" href="du-lieu.html"><span class="feature-ic anim-bounce"><span data-icon="database" data-size="22"></span></span><h3>Dạy AI âm thanh của bạn</h3><p>Thu 3–5 mẫu chuông cửa, tiếng rao quen… lần sau AI gọi đúng tên bạn đặt. Mẫu được lưu lại để nghe, tải về.</p><span class="link">Thử dạy AI <span data-icon="arrow" data-size="16"></span></span></a>
         </div>
       </div>
     </section>

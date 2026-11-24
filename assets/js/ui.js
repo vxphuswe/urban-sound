@@ -59,7 +59,11 @@ function headerHtml() {
     </a>
     <nav class="nav" aria-label="Chính">${navHtml()}</nav>
     <div class="nav-right">
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện sáng/tối">${icon('sun', { size: 18, cls: 'only-dark' })}${icon('moon', { size: 18, cls: 'only-light' })}</button>
+      <button class="icon-btn theme-btn" id="theme-toggle" type="button" aria-label="Đổi giao diện ngày/đêm" title="Đổi giao diện ngày/đêm">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><mask id="tmask"><rect width="24" height="24" fill="#fff"/><circle class="t-bite" cx="24" cy="2" r="7" fill="#000"/></mask>
+          <circle class="t-core" cx="12" cy="12" r="5" fill="currentColor" mask="url(#tmask)"/>
+          <g class="t-rays" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v2.2M12 20.3v2.2M1.5 12h2.2M20.3 12h2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></g></svg>
+      </button>
       <div id="auth-slot" class="auth-slot"><a class="btn btn-ghost btn-sm" href="dang-nhap.html">Đăng nhập</a></div>
       <a class="btn btn-primary btn-sm hide-sm" id="cta-start" href="nhan-dien.html">Thử nhận diện</a>
       <button class="icon-btn show-sm" id="menu-toggle" type="button" aria-label="Mở menu" aria-expanded="false">${icon('menu', { size: 20 })}</button>
@@ -214,6 +218,7 @@ export function formatDate(ts) {
 /** Thay các thẻ <span data-icon="tên"> trong HTML bằng SVG */
 export function hydrateIcons(root = document) {
   $$('[data-icon]', root).forEach((el) => {
+    if (el.dataset.icon === 'logo' && el.closest('.brand-mark')) { el.outerHTML = LOGO_MARK; return; }
     el.outerHTML = icon(el.dataset.icon, { size: Number(el.dataset.size) || 18 });
   });
 }
@@ -229,7 +234,36 @@ export function initLayout() {
   renderQuickGuide();
   document.addEventListener('click', () => $$('[data-drop].open').forEach((o) => o.classList.remove('open')));
 
-  $('#theme-toggle')?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+  $('#theme-toggle')?.addEventListener('click', (e) => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    // Đổi ngày ↔ đêm bằng vòng tròn lan ra từ nút (trình duyệt hỗ trợ View Transitions)
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return applyTheme(next);
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.documentElement.classList.add('vt-theme');
+    const vt = document.startViewTransition(() => applyTheme(next));
+    vt.finished.finally(() => document.documentElement.classList.remove('vt-theme'));
+    vt.ready.then(() => document.documentElement.animate(
+      { clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] },
+      { duration: 650, easing: 'cubic-bezier(.6,0,.3,1)', pseudoElement: '::view-transition-new(root)' },
+    )).catch(() => {});
+  });
+  // Thanh tiến độ cuộn trang
+  const prog = document.createElement('div');
+  prog.className = 'scroll-prog';
+  document.body.appendChild(prog);
+  const onScroll = () => { const m = document.documentElement.scrollHeight - innerHeight; prog.style.transform = `scaleX(${m > 0 ? scrollY / m : 0})`; };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  // Ánh sáng nhẹ đi theo con trỏ trên các thẻ (chỉ máy có chuột)
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    document.addEventListener('pointermove', (ev) => {
+      const c = ev.target.closest?.('.card, .feature, .medal, .reel, .journey-grid');
+      if (!c) return;
+      const b = c.getBoundingClientRect();
+      c.style.setProperty('--mx', `${ev.clientX - b.left}px`); c.style.setProperty('--my', `${ev.clientY - b.top}px`);
+    }, { passive: true });
+  }
   const mt = $('#menu-toggle');
   mt?.addEventListener('click', () => {
     const d = $('#drawer');
@@ -242,6 +276,11 @@ export function initLayout() {
   renderAuth();
   onAuthChange(() => renderAuth());
   reveal();
+  // Tiêu đề đầu trang hiện từng chữ (một lần, khi vào trang)
+  const ph = $('.page-head h1');
+  if (ph && !ph.children.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    ph.innerHTML = ph.textContent.trim().split(/\s+/).map((w, i) => `<span class="w" style="animation-delay:${0.06 * i}s">${esc(w)}</span>`).join(' ');
+  }
   setUnlockHandler(celebrate);
   recordVisit();
   if (isDemoAuth() && page() === 'dang-nhap.html') document.body.classList.add('auth-demo');

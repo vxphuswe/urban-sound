@@ -32,6 +32,30 @@ import { load, streak, nKinds, BADGES } from '../journey.js';
     <rect y="300" width="1440" height="60" fill="url(#sky-fade)"/>`;
 })();
 
+// ------------------------------------------------------------------ Bầu trời: sao (đêm), tiêu đề hiện từng chữ, bong bóng âm thanh bay lên từ dãy phố
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+$('#stars').innerHTML = Array.from({ length: 46 }, () => `<i style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 70).toFixed(1)}%;--s:${(1 + Math.random() * 2).toFixed(1)}px;animation-delay:-${(Math.random() * 4).toFixed(1)}s;animation-duration:${(2 + Math.random() * 3).toFixed(1)}s"></i>`).join('');
+
+const h1 = document.querySelector('.hero-night h1');
+if (h1 && !REDUCED) h1.innerHTML = h1.textContent.split(' ').map((w, i) => `<span class="w" style="animation-delay:${0.08 * i + 0.1}s">${esc(w)}</span>`).join(' ');
+
+const SOUNDS = [['dog', 'Gâu gâu'], ['horn', 'Bíp bíp'], ['bird', 'Líu lo'], ['motorbike', 'Brừm brừm'], ['music', 'La la la'], ['speech', 'Bánh mì đây!'], ['bell', 'Reng reng'], ['baby', 'Oa oa'], ['rain', 'Lộp độp'], ['siren', 'Í o í o'], ['cat', 'Meo meo'], ['door', 'Cốc cốc']];
+let bi = 0;
+function bubble() {
+  if (document.hidden || REDUCED) return;
+  const box = $('#bubbles');
+  if (!box || box.childElementCount > 6) return;
+  const [ic, txt] = SOUNDS[bi++ % SOUNDS.length];
+  const el = document.createElement('span');
+  el.className = 'bubble';
+  el.style.left = `${8 + Math.random() * 84}%`;
+  el.style.setProperty('--drift', `${(Math.random() * 60 - 30).toFixed(0)}px`);
+  el.innerHTML = `${icon(ic, { size: 15 })}<b>${txt}</b>`;
+  box.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+setInterval(bubble, 1500); bubble();
+
 // ------------------------------------------------------------------ Ví dụ kết quả (đổi cảnh mỗi vài giây)
 const REEL = [
   { id: 'dog', name: 'Chó sủa', pct: 96, db: 72 },
