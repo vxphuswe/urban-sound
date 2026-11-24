@@ -20,108 +20,106 @@
   <header id="site-header"></header>
   <main id="main">
     <section class="page-head container">
-      <span class="eyebrow">Âm thanh của tôi <span class="sep">/</span> Thu âm, lưu lại & dạy AI</span>
-      <h1>Dạy Urban Sound nghe âm thanh của bạn</h1>
-      <p>Thu chuông cửa nhà bạn, tiếng rao quen, tiếng xe của bạn… Mẫu được <b>lưu lại trên máy</b> (đóng trình duyệt vẫn còn). Chỉ cần 3–5 mẫu, lần sau ở trang <a class="link" href="truc-tiep.html">Trực tiếp</a> hay <a class="link" href="nhan-dien.html">Nhận diện</a>, AI sẽ gọi đúng tên bạn đặt.</p>
+      <span class="eyebrow">Âm thanh của tôi</span>
+      <h1>Dạy AI nhận âm thanh của bạn</h1>
+      <p>Chuông cửa nhà bạn, tiếng rao quen, tiếng xe của bạn… Thu 5 lần, mỗi lần 3 giây. Mẫu được <b>tự lưu trên máy</b>, lần sau ở Trực tiếp hay Nhận diện, AI gọi đúng tên bạn đặt.</p>
     </section>
-
-    <div class="container">
-      <ol class="flow-steps reveal">
-        <li><span class="fs-n">1</span><div><b>Đặt tên âm thanh</b><small>“Chuông cửa nhà mình”, “Tiếng rao bánh mì”…</small></div></li>
-        <li><span class="fs-n">2</span><div><b>Thu 3–5 mẫu</b><small>Mỗi mẫu vài giây, AI nghe thử ngay</small></div></li>
-        <li><span class="fs-n">3</span><div><b>AI nhận ra lần sau</b><small>Tự động ở Trực tiếp & Nhận diện</small></div></li>
-        <li><span class="fs-n">4</span><div><b>Đóng góp (tuỳ chọn)</b><small>Tải .zip hoặc gửi lên kho chung để train</small></div></li>
-      </ol>
-    </div>
 
     <div class="container tool">
       <div class="tool-main">
-        <section class="card card-pad">
-          <div class="row" style="justify-content:space-between;gap:10px">
-            <h2 style="font-size:1.15rem;margin:0">1. Bạn muốn thu âm thanh gì?</h2>
-            <div class="seg seg-sm" role="tablist" id="label-mode">
-              <button role="tab" aria-selected="true" data-mode="mine" type="button">Âm thanh của tôi</button>
-              <button role="tab" aria-selected="false" data-mode="group" type="button">Nhóm có sẵn</button>
-            </div>
-          </div>
-          <div id="mode-mine" style="margin-top:14px">
-            <div class="chips" id="my-labels"></div>
-            <form class="new-label" id="new-label" autocomplete="off">
-              <input class="input" id="nl-name" maxlength="40" placeholder="Tên âm thanh mới, vd: Chuông cửa nhà mình" aria-label="Tên âm thanh mới">
-              <select class="select" id="nl-icon" aria-label="Biểu tượng"></select>
-              <button class="btn btn-primary" type="submit"><span data-icon="sparkles" data-size="16"></span>Tạo</button>
-            </form>
-          </div>
-          <div id="mode-group" hidden style="margin-top:14px">
-            <label class="field">Nhóm âm thanh có sẵn (dùng để đóng góp dữ liệu train) <select class="select" id="label-select"></select></label>
-          </div>
-          <div class="label-now" id="label-now"></div>
-          <label class="switch" style="margin-top:10px"><input type="checkbox" id="opt-teach" checked> Dạy AI nhận âm thanh này trên máy tôi</label>
-        </section>
+        <section class="card teach" id="teach">
+          <ol class="stepper" id="stepper">
+            <li data-s="1" class="on"><i>1</i><span>Đặt tên</span></li>
+            <li data-s="2"><i>2</i><span>Thu 5 lần</span></li>
+            <li data-s="3"><i>3</i><span>Thử ngay</span></li>
+          </ol>
 
-        <section class="card card-pad">
-          <h2 style="font-size:1.15rem">2. Thu mẫu hoặc thêm file</h2>
-          <div class="grid-2" style="align-items:center">
-            <div class="recorder" style="padding:16px">
-              <button class="rec-btn" id="d-rec" type="button" aria-label="Ghi mẫu"><span class="ring"></span><span class="ring"></span><span data-icon="mic" data-size="40"></span></button>
-              <div class="rec-time" id="d-time">00:00</div>
-              <div class="rec-meter" aria-hidden="true"><i id="d-meter"></i></div>
-              <label class="row" style="gap:8px;font-size:.9rem">Độ dài mỗi mẫu
-                <select class="select" id="d-len"><option value="3">3 giây</option><option value="5" selected>5 giây</option><option value="10">10 giây</option></select></label>
-              <label class="switch" style="font-size:.88rem"><input type="checkbox" id="d-continuous"> Ghi liên tục nhiều mẫu</label>
+          <!-- Bước 1 -->
+          <div class="t-step" data-step="1">
+            <h2>Bạn muốn AI nhận ra âm thanh gì?</h2>
+            <form id="name-form" autocomplete="off">
+              <input class="input input-lg" id="nl-name" maxlength="40" placeholder="Ví dụ: Chuông cửa nhà mình" aria-label="Tên âm thanh">
+              <p class="muted t-hint">Chọn một biểu tượng</p>
+              <div class="icon-pick" id="icon-pick" role="radiogroup" aria-label="Biểu tượng"></div>
+              <button class="btn btn-primary btn-lg t-next" type="submit">Tiếp tục: thu âm</button>
+            </form>
+            <div id="known-wrap" hidden>
+              <p class="muted t-hint" style="margin-top:22px">Hoặc thu thêm cho âm thanh AI đã học</p>
+              <div class="chips" id="known"></div>
             </div>
-            <label class="dropzone" style="padding:28px 16px">
-              <input type="file" id="d-files" multiple hidden accept="audio/*,video/*">
-              <span class="big-ic"><span data-icon="upload" data-size="28"></span></span>
-              <h3 style="font-size:1rem">Thêm file có sẵn</h3>
-              <p>Tự cắt thành đoạn theo độ dài đã chọn</p>
-            </label>
           </div>
-          <p class="muted" style="font-size:.86rem;margin:12px 0 0">Bấm nút để ghi một mẫu: đủ độ dài sẽ <b>tự dừng, tự lưu và để AI nghe thử</b>. Đoạn quá yên lặng sẽ bị bỏ qua.</p>
+
+          <!-- Bước 2 -->
+          <div class="t-step" data-step="2" hidden>
+            <div class="t-target"><span class="t-ic" id="t-ic"></span><div><small>Đang dạy AI</small><b id="t-name"></b></div><button class="btn btn-ghost btn-sm" type="button" id="t-rename">Đổi</button></div>
+            <div class="rec-zone">
+              <button class="rec-ring" id="rec" type="button" aria-label="Thu mẫu">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rr-bg" cx="60" cy="60" r="54"/><circle class="rr-fg" id="rr-fg" cx="60" cy="60" r="54"/></svg>
+                <span class="rr-core" id="rr-core"><span data-icon="mic" data-size="38"></span></span>
+              </button>
+              <div class="rec-status" id="rec-status">Bấm nút, rồi phát âm thanh đó gần micro</div>
+              <div class="level"><i id="level"></i></div>
+              <div class="dots" id="dots"></div>
+              <label class="switch" style="font-size:.88rem"><input type="checkbox" id="auto" checked> Tự thu liền 5 lần (rảnh tay)</label>
+            </div>
+            <div class="t-samples" id="t-samples"></div>
+            <div class="t-actions">
+              <label class="btn btn-ghost btn-sm"><input type="file" id="t-files" multiple hidden accept="audio/*,video/*"><span data-icon="upload" data-size="16"></span>Thêm từ file</label>
+              <button class="btn btn-primary" type="button" id="to-test" disabled>Xong, thử ngay</button>
+            </div>
+          </div>
+
+          <!-- Bước 3 -->
+          <div class="t-step" data-step="3" hidden>
+            <h2>Thử xem AI đã nhận ra chưa</h2>
+            <p class="muted">Bấm nút rồi phát lại đúng âm thanh đó. Muốn chắc chắn, thử thêm một tiếng khác hẳn: AI không được nhận nhầm.</p>
+            <div class="rec-zone">
+              <button class="rec-ring test" id="test" type="button" aria-label="Thử nhận"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rr-bg" cx="60" cy="60" r="54"/><circle class="rr-fg" id="rt-fg" cx="60" cy="60" r="54"/></svg><span class="rr-core"><span data-icon="ear" data-size="38"></span></span></button>
+              <div class="rec-status" id="test-status">Bấm để nghe 3 giây</div>
+            </div>
+            <div id="test-out" aria-live="polite"></div>
+            <div class="t-actions">
+              <button class="btn btn-ghost btn-sm" type="button" id="more"><span data-icon="mic" data-size="16"></span>Thu thêm mẫu</button>
+              <button class="btn btn-ghost btn-sm" type="button" id="another"><span data-icon="sparkles" data-size="16"></span>Dạy âm thanh khác</button>
+              <a class="btn btn-primary btn-sm" href="truc-tiep.html">Dùng ở Trực tiếp</a>
+            </div>
+          </div>
         </section>
 
         <section class="card">
-          <div class="card-title"><h3 class="row" style="gap:8px"><span data-icon="database"></span>3. Kho âm thanh của tôi <span class="badge" id="d-count">0</span></h3>
-            <div class="row" style="gap:6px;flex-wrap:wrap">
-              <button class="btn btn-ghost btn-sm" id="d-test" type="button" title="Thu 3 giây và xem AI có nhận ra không"><span data-icon="ear" data-size="16"></span>Thử nhận ngay</button>
-              <button class="btn btn-ghost btn-sm" id="d-upload" type="button" title="Gửi mẫu lên kho chung của nhóm (cần đăng nhập)"><span data-icon="upload" data-size="16"></span>Gửi lên kho chung</button>
-              <button class="btn btn-ghost btn-sm" id="d-clear" type="button"><span data-icon="trash" data-size="16"></span>Xóa đang xem</button>
-              <button class="btn btn-primary btn-sm" id="d-zip" type="button" disabled><span data-icon="download" data-size="16"></span>Tải .zip</button>
-            </div></div>
-          <div class="card-pad" style="padding-top:12px">
-            <div class="lib-labels" id="lib-labels"></div>
-            <div id="d-list" class="lib-list"><div class="empty">Chưa có mẫu nào.</div></div>
-            <p class="muted" style="font-size:.8rem;margin:12px 0 0" id="d-storage"></p>
-          </div>
+          <div class="card-title"><h3 class="row" style="gap:8px"><span data-icon="database"></span>Những âm thanh AI đã học <span class="badge" id="n-learned">0</span></h3></div>
+          <div class="card-pad learned" id="learned"></div>
+          <p class="muted card-pad" style="font-size:.8rem;padding-top:0" id="d-storage"></p>
         </section>
       </div>
 
       <aside class="tool-side">
-        <section class="card card-pad test-card" id="test-card" hidden>
-          <h3 style="font-size:1rem" class="row"><span data-icon="ear"></span> Kết quả thử nhận</h3>
-          <div id="test-out"></div>
-        </section>
         <section class="card card-pad">
-          <h3 style="font-size:1rem" class="row"><span data-icon="sparkles"></span> Mẫu tốt là mẫu…</h3>
+          <h3 style="font-size:1rem" class="row"><span data-icon="sparkles"></span> Thu sao cho AI nhận tốt</h3>
           <ul class="muted" style="margin:0;padding-left:18px;font-size:.92rem;display:grid;gap:6px">
-            <li>Âm thanh chính nghe rõ, chiếm phần lớn đoạn ghi.</li>
-            <li>Thu ở đúng nơi thường nghe thấy nó (ví dụ cạnh cửa).</li>
-            <li>Dạy AI: 3–5 mẫu là đủ. Đóng góp để train: 30–50 mẫu mỗi nhãn.</li>
-            <li>Không ghi giọng nói của người khác khi chưa xin phép.</li>
+            <li>Để điện thoại ở chỗ bạn hay nghe thấy âm thanh đó.</li>
+            <li>Mỗi lần thu, cho âm thanh vang lên rõ trong 3 giây.</li>
+            <li>Thanh "Độ nhớ" đầy là AI đã nhớ tốt. Mẫu nào bị đánh dấu "khác" thì nên xóa.</li>
+            <li>Mẫu chỉ lưu trên máy bạn, không gửi đi đâu.</li>
           </ul>
         </section>
-        <section class="card card-pad">
-          <h3 style="font-size:1rem" class="row"><span data-icon="cpu"></span> AI nhận âm thanh riêng thế nào?</h3>
-          <p class="muted" style="font-size:.88rem;margin:0">Mỗi mẫu được YAMNet biến thành một “dấu vân tay” 1024 số. Khi nghe âm thanh mới, web so độ giống (cosine) với dấu vân tay các mẫu bạn đã dạy; đủ giống thì báo tên bạn đặt. Không cần train lại, mọi thứ ở trên máy bạn.</p>
-        </section>
-        <section class="card card-pad">
-          <h3 style="font-size:1rem" class="row"><span data-icon="download"></span> Dùng gói .zip để train</h3>
-          <ol class="muted" style="margin:0;padding-left:18px;font-size:.9rem;display:grid;gap:6px">
-            <li>Giải nén vào <span class="mono">training/data/my_sounds/</span></li>
+        <details class="card card-pad dev-box" id="dev-box">
+          <summary><span data-icon="cpu" data-size="18"></span><b>Dành cho nhóm phát triển</b></summary>
+          <p class="muted" style="font-size:.86rem;margin:10px 0">Gom mẫu để huấn luyện lại mô hình. Người dùng bình thường không cần dùng.</p>
+          <label class="field" style="font-size:.86rem">Thu mẫu cho nhóm có sẵn của mô hình
+            <select class="select" id="label-select"></select></label>
+          <button class="btn btn-sm" id="group-rec" type="button" style="margin-top:8px"><span data-icon="mic" data-size="16"></span>Thu cho nhóm này</button>
+          <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn-sm" id="d-zip" type="button" disabled><span data-icon="download" data-size="16"></span>Tải .zip tất cả mẫu</button>
+            <button class="btn btn-sm" id="d-upload" type="button"><span data-icon="upload" data-size="16"></span>Gửi lên kho chung</button>
+          </div>
+          <ol class="muted" style="margin:12px 0 0;padding-left:18px;font-size:.84rem;display:grid;gap:4px">
+            <li>Giải nén .zip vào <span class="mono">training/data/my_sounds/</span></li>
             <li>Chạy <span class="mono">01_prepare_data.py</span> → <span class="mono">02_extract_embeddings.py</span> → <span class="mono">03_train_head.py</span></li>
-            <li>Commit <span class="mono">models/custom/head.json</span> → Vercel tự cập nhật.</li>
+            <li>Commit <span class="mono">models/custom/head.json</span>.</li>
           </ol>
-        </section>
+          <p class="muted" style="font-size:.82rem;margin:12px 0 0"><b>Cách nhận âm thanh riêng:</b> mỗi mẫu → vector YAMNet 1024 chiều; so cosine với các mẫu đã dạy, ngưỡng riêng theo độ đồng đều giữa các mẫu của từng âm thanh. Không cần train lại.</p>
+        </details>
       </aside>
     </div>
   </main>

@@ -1275,3 +1275,81 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 /* Chạm nhanh hai lần không làm trang phóng to */
 button, .btn, .ctl, .chip, a { touch-action: manipulation; }
 @media (max-width: 640px) { input, select, textarea, .input, .select { font-size: 16px; } } /* iOS không tự phóng to khi chạm vào ô nhập */
+
+/* ==========================================================================
+   Dạy AI (Âm thanh của tôi) – 3 bước
+   ========================================================================== */
+.teach { padding: 26px; }
+.stepper { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 26px; padding: 0; counter-reset: s; }
+.stepper li { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: .92rem; cursor: pointer; transition: background .25s, color .25s; }
+.stepper li i { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--surface-3); font-size: .85rem; transition: background .25s, color .25s; }
+.stepper li.on { color: var(--text); background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.stepper li.on i { background: var(--accent); color: var(--accent-ink); }
+.stepper li.done i { background: color-mix(in srgb, var(--accent) 30%, var(--surface-3)); color: var(--accent); }
+.stepper li.done i::before { content: "✓"; } .stepper li.done i { font-size: 0; } .stepper li.done i::before { font-size: .9rem; }
+.t-step { animation: ccin .35s ease-out; }
+.t-step h2 { font-size: clamp(1.25rem, 2.4vw, 1.6rem); margin-bottom: 14px; }
+.input-lg { height: 56px; font-size: 1.1rem; padding: 0 18px; border-radius: 14px; width: 100%; }
+.t-hint { font-size: .86rem; margin: 16px 0 8px; }
+.icon-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+.icon-pick button { aspect-ratio: 1; border-radius: 14px; display: grid; place-items: center; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--muted); transition: transform .15s, border-color .15s, color .15s; }
+.icon-pick button:hover { transform: translateY(-2px); color: var(--text); }
+.icon-pick button[aria-checked="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); transform: scale(1.06); }
+.t-next { margin-top: 20px; width: 100%; }
+.t-target { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--surface-2); }
+.t-target .t-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--blue) 18%, var(--surface-3)); color: var(--blue); }
+.t-target small { display: block; color: var(--muted); font-size: .76rem; } .t-target b { font-size: 1.1rem; }
+.t-target .btn { margin-left: auto; }
+.rec-zone { display: grid; justify-items: center; gap: 12px; padding: 26px 0 10px; }
+.rec-ring { position: relative; width: 150px; height: 150px; border: 0; background: none; padding: 0; border-radius: 50%; }
+.rec-ring > svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.rr-bg { fill: none; stroke: var(--surface-3); stroke-width: 6; }
+.rr-fg { fill: none; stroke: var(--red); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 339.3; stroke-dashoffset: 339.3; }
+.rec-ring.test .rr-fg { stroke: var(--accent); }
+.rr-core { position: absolute; inset: 16px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(160deg, var(--accent), var(--accent-2)); color: var(--accent-ink); box-shadow: 0 16px 40px -14px var(--accent); transition: transform .2s, background .3s; }
+.rec-ring:hover .rr-core { transform: scale(1.04); }
+.rec-ring.active .rr-core { background: linear-gradient(160deg, #ff6b6b, #e53e3e); color: #fff; box-shadow: 0 16px 40px -12px #e53e3e; }
+.teach.is-rec .rec-ring .rr-core { animation: recpulse 1.2s ease-in-out infinite; }
+.rec-status { min-height: 1.6em; text-align: center; color: var(--text-2); }
+.level { width: 200px; height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.level i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--amber), var(--red)); transition: width .08s; }
+.dots { display: flex; gap: 8px; align-items: center; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-3); transition: background .3s, transform .3s; }
+.dots i.on { background: var(--accent); transform: scale(1.1); animation: pop .4s cubic-bezier(.2,1.6,.4,1); }
+.dots i.next { box-shadow: 0 0 0 2px var(--accent) inset; }
+.t-samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-top: 10px; }
+.t-sample { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 4px; border-radius: 12px; background: var(--surface-2); font-size: .88rem; animation: ccin .3s ease-out; }
+.t-sample .q { margin-left: auto; font-size: .74rem; padding: 2px 8px; border-radius: 999px; }
+.t-sample .q.good { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.t-sample .q.weak, .t-sample.odd .q { color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+.t-sample.odd { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 45%, transparent); }
+.t-sample [data-act="play"] { color: var(--accent); }
+.t-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.t-actions .btn-primary { margin-left: auto; }
+.test-hit.other { color: var(--amber); background: linear-gradient(120deg, color-mix(in srgb, var(--amber) 18%, var(--surface)), var(--surface)); }
+.t-step.celebrate .rr-core { animation: pop .6s cubic-bezier(.2,1.6,.4,1); box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 25%, transparent), 0 16px 40px -14px var(--accent); }
+.learned { display: grid; gap: 10px; }
+.learn-card { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; padding: 14px; border-radius: 16px; background: var(--surface-2); animation: ccin .3s ease-out; }
+.learn-card.off { opacity: .55; }
+.lc-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: var(--blue); background: color-mix(in srgb, var(--blue) 16%, var(--surface-3)); }
+.lc-main b { display: block; font-size: 1.02rem; } .lc-main small { color: var(--muted); font-size: .8rem; }
+.lc-bar { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; margin: 8px 0 4px; max-width: 260px; }
+.lc-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); }
+.lc-hint { display: block; }
+.lc-acts { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) {
+  .teach { padding: 18px; }
+  .stepper li span { display: none; } .stepper li { justify-content: center; }
+  .learn-card { grid-template-columns: 44px 1fr; } .lc-ic { width: 44px; height: 44px; }
+  .lc-acts { grid-column: 1 / -1; justify-content: flex-start; }
+  .t-actions .btn-primary { width: 100%; }
+}
+.rec-status .rec-dot, .test-wait .rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: blink 1s infinite; margin-right: 6px; vertical-align: middle; }
+.btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; filter: grayscale(.3); }
+.dev-box > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; color: var(--text-2); }
+.dev-box > summary::-webkit-details-marker { display: none; }
+.dev-box > summary::after { content: "+"; margin-left: auto; font-size: 1.2rem; color: var(--muted); transition: transform .2s; }
+.dev-box[open] > summary::after { transform: rotate(45deg); }
+.dev-box:not([open]) { padding-top: 16px; padding-bottom: 16px; }
+.test-hit .mono { margin-left: auto; font-size: 1.3rem; font-weight: 700; }
+.rr-core .ic { width: 38px; height: 38px; }
