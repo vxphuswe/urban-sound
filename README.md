@@ -166,3 +166,10 @@ Trang **Âm thanh của tôi** (`du-lieu.html`) có nút "Gửi lên kho chung".
 - **Đám đông**: quy tắc kết hợp Speech + Crowd/Hubbub của YAMNet.
 - **Hành trình nghe**: bộ sưu tập âm thanh, chuỗi ngày, huy hiệu (trang chủ).
 - **Minh họa động** cho từng loại âm thanh (`assets/js/scenes.js`); có thể thay bằng ảnh/video thật – xem `assets/media/sounds/README.md`.
+
+### Đăng nhập Google (trang chọn tài khoản ghi tên web)
+Khi có `GOOGLE_CLIENT_ID`, nút Google chuyển thẳng tới Google và quay về `…/dang-nhap.html` (không qua `…supabase.co`).
+Trong Google Cloud → Credentials → OAuth client (Web) cần có:
+- **Authorized JavaScript origins:** `https://urban-sound-ai.vercel.app`
+- **Authorized redirect URIs:** `https://urban-sound-ai.vercel.app/dang-nhap.html` (giữ nguyên link `…supabase.co/auth/v1/callback` đã có)
+

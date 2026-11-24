@@ -1,7 +1,7 @@
 import { initLayout, $, $$, toast, esc } from '../ui.js';
 import { BRAND } from '../icons.js';
 import { CONFIG } from '../config.js';
-import { currentUser, signInWithProvider, sendEmailCode, verifyEmailCode, signOut, isDemoAuth, supabase, hasGoogleGis, renderGoogleButton } from '../auth.js';
+import { currentUser, signInWithProvider, sendEmailCode, verifyEmailCode, signOut, isDemoAuth, supabase, hasGoogleDirect, signInWithGoogleDirect, finishGoogleDirect, googleNext } from '../auth.js';
 
 initLayout();
 $('#g-logo').outerHTML = BRAND.google;
@@ -29,22 +29,37 @@ async function showDone(u) {
   if (u) showDone(u);
 })();
 
-$('#btn-google').addEventListener('click', () => signInWithProvider('google').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
-// Có Client ID: dùng nút Google chính thức (cửa sổ Google ghi tên web thay vì "...supabase.co")
-if (hasGoogleGis()) {
-  const holder = document.createElement('div');
-  holder.className = 'gsi-holder';
-  $('#btn-google').after(holder);
-  $('.oauth').classList.add('has-gsi');
-  renderGoogleButton(holder, {
-    onDone: (u) => { toast(`Đăng nhập thành công. Chào ${u.name}!`, { tone: 'success' }); showDone(u); },
-    onError: (e) => toast(e.message, { tone: 'error', ms: 8000 }),
-  }).then(() => { $('#btn-google').hidden = true; }).catch(() => holder.remove()); // lỗi tải → giữ nút cũ
-}
-// Ẩn nút của nhà cung cấp chưa bật trong config.js (Apple cần tài khoản Apple Developer trả phí)
-if (!CONFIG.AUTH_PROVIDERS?.apple) $('#btn-apple').remove();
-if (!CONFIG.AUTH_PROVIDERS?.google) $('#btn-google').remove();
-$('#btn-apple')?.addEventListener('click', () => signInWithProvider('apple').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
+// ------------------------------------------------------------------ Google / Apple / Facebook
+const PROVIDER_NAME = { google: 'Google', apple: 'Apple' };
+const notReady = (p) => {
+  const on = Object.keys(PROVIDER_NAME).filter((k) => CONFIG.AUTH_PROVIDERS?.[k]).map((k) => PROVIDER_NAME[k]);
+  const why = p === 'apple' ? ' (cần tài khoản Apple Developer trả phí)' : '';
+  toast(`Đăng nhập ${PROVIDER_NAME[p]} chưa được bật${why}. Bạn dùng ${[...on, 'mã qua email'].join(', ')} nhé.`, { ms: 6000 });
+};
+
+$('.oauth').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-provider]');
+  if (!b) return;
+  const p = b.dataset.provider;
+  if (!isDemoAuth() && !CONFIG.AUTH_PROVIDERS?.[p]) return notReady(p);
+  b.disabled = true;
+  b.classList.add('loading');
+  try {
+    if (p === 'google' && hasGoogleDirect()) await signInWithGoogleDirect(next); // trang chọn tài khoản ghi tên web
+    else await signInWithProvider(p);
+  } catch (err) {
+    toast(err.message, { tone: 'error', ms: 7000 });
+    b.disabled = false; b.classList.remove('loading');
+  }
+});
+
+// Vừa quay về từ Google
+finishGoogleDirect().then((u) => {
+  if (!u) return;
+  toast(`Đăng nhập thành công. Chào ${u.name}!`, { tone: 'success' });
+  $('#go-next').href = googleNext();
+  showDone(u);
+}).catch((err) => toast(err.message, { tone: 'error', ms: 9000 }));
 
 $('#email-form').addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -7,6 +7,11 @@ let client = null;
 const listeners = new Set();
 let cachedUser;
 
+// Quay lại từ trang chọn tài khoản Google (luồng id_token): lấy kết quả trong "#..." NGAY khi tải trang,
+// trước khi thư viện Supabase đọc địa chỉ, rồi xóa khỏi thanh địa chỉ.
+const GOOGLE_RETURN = /(^|[#&])(id_token|error)=/.test(location.hash) && sessionStorage.getItem('tp.gnonce') ? location.hash.slice(1) : '';
+if (GOOGLE_RETURN) history.replaceState(null, '', location.pathname + location.search);
+
 export async function supabase() {
   if (!hasSupabase()) return null;
   if (client) return client;
@@ -55,7 +60,8 @@ function setDemoUser(u) {
 
 export async function signInWithProvider(provider) {
   const sb = await supabase();
-  if (!sb) throw new Error(`Đăng nhập ${provider === 'google' ? 'Google' : 'Apple'} cần cấu hình Supabase (xem README, mục "Đăng nhập"). Hiện bạn có thể dùng mã qua email ở chế độ demo.`);
+  const NAME = { google: 'Google', apple: 'Apple', facebook: 'Facebook' };
+  if (!sb) throw new Error(`Đăng nhập ${NAME[provider]} cần cấu hình Supabase (xem README, mục "Đăng nhập"). Hiện bạn có thể dùng mã qua email ở chế độ demo.`);
   const next = new URLSearchParams(location.search).get('next') || 'lich-su.html';
   const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: new URL(next, location.href).href } });
   if (error) throw error;
@@ -96,50 +102,43 @@ export async function signOut() {
   setDemoUser(null);
 }
 
-// ------------------------------------------------------------------ Google Identity Services
-// Đăng nhập Google ngay trên trang web (popup của Google ghi tên web/tên miền của bạn thay vì "…supabase.co").
-// Cần CONFIG.GOOGLE_CLIENT_ID (Client ID loại Web trong Google Cloud) – xem README, mục "Đăng nhập Google".
-export function hasGoogleGis() { return Boolean(CONFIG.GOOGLE_CLIENT_ID) && hasSupabase(); }
-
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) return window.google?.accounts?.id ? resolve() : setTimeout(resolve, 500);
-    const sc = document.createElement('script');
-    sc.src = src; sc.async = true; sc.onload = resolve; sc.onerror = () => reject(new Error('Không tải được thư viện đăng nhập Google.'));
-    document.head.appendChild(sc);
-  });
-}
+// ------------------------------------------------------------------ Google: trang chọn tài khoản ghi tên web của bạn
+// Có CONFIG.GOOGLE_CLIENT_ID: chuyển thẳng tới Google với địa chỉ quay về là trang web này (không qua …supabase.co),
+// Google trả về id_token, web đưa cho Supabase kiểm tra (signInWithIdToken). Chạy tốt cả trên điện thoại (không dùng cửa sổ bật lên).
+export function hasGoogleDirect() { return Boolean(CONFIG.GOOGLE_CLIENT_ID) && hasSupabase(); }
 
 async function sha256hex(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+const googleRedirectUri = () => `${location.origin}/dang-nhap.html`;
 
-/** Vẽ nút "Tiếp tục với Google" chính thức vào `el`. onDone(user) khi đăng nhập xong. */
-export async function renderGoogleButton(el, { onDone, onError } = {}) {
-  await loadScript('https://accounts.google.com/gsi/client');
+export async function signInWithGoogleDirect(next = 'lich-su.html') {
   const raw = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
-  const hashed = await sha256hex(raw);
-  window.google.accounts.id.initialize({
-    client_id: CONFIG.GOOGLE_CLIENT_ID,
-    nonce: hashed,
-    ux_mode: 'popup',
-    use_fedcm_for_prompt: true,
-    callback: async (resp) => {
-      try {
-        const sb = await supabase();
-        const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw });
-        if (error) throw error;
-        cachedUser = mapUser(data.user);
-        listeners.forEach((fn) => fn(cachedUser));
-        onDone?.(cachedUser);
-      } catch (e) {
-        onError?.(new Error(/audience|client/i.test(e.message || '') ? 'Supabase chưa chấp nhận Client ID này. Thêm Client ID vào Supabase → Authentication → Providers → Google.' : (e.message || String(e))));
-      }
-    },
+  sessionStorage.setItem('tp.gnonce', raw);
+  sessionStorage.setItem('tp.gnext', next);
+  const q = new URLSearchParams({
+    client_id: CONFIG.GOOGLE_CLIENT_ID, redirect_uri: googleRedirectUri(), response_type: 'id_token',
+    scope: 'openid email profile', nonce: await sha256hex(raw), prompt: 'select_account',
   });
-  window.google.accounts.id.renderButton(el, {
-    type: 'standard', theme: document.documentElement.dataset.theme === 'light' ? 'outline' : 'filled_black',
-    size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', locale: 'vi', width: Math.min(400, Math.max(240, el.clientWidth || 360)),
-  });
+  location.href = `https://accounts.google.com/o/oauth2/v2/auth?${q}`;
 }
+
+/** Gọi ở trang đăng nhập: hoàn tất nếu vừa quay về từ Google. Trả về user, null nếu không có gì, ném lỗi nếu thất bại. */
+export async function finishGoogleDirect() {
+  if (!GOOGLE_RETURN) return null;
+  const h = new URLSearchParams(GOOGLE_RETURN);
+  const raw = sessionStorage.getItem('tp.gnonce');
+  sessionStorage.removeItem('tp.gnonce');
+  if (h.get('error')) {
+    if (h.get('error') === 'access_denied') return null; // người dùng bấm Hủy
+    throw new Error(/redirect_uri/.test(h.get('error_description') || h.get('error')) ? 'Google chưa cho phép địa chỉ quay về. Thêm …/dang-nhap.html vào "Authorized redirect URIs" trong Google Cloud.' : `Google báo lỗi: ${h.get('error_description') || h.get('error')}`);
+  }
+  const sb = await supabase();
+  const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token: h.get('id_token'), nonce: raw });
+  if (error) throw new Error(/audience|client/i.test(error.message) ? 'Supabase chưa chấp nhận Client ID này. Thêm Client ID vào Supabase → Authentication → Providers → Google.' : error.message);
+  cachedUser = mapUser(data.user);
+  listeners.forEach((fn) => fn(cachedUser));
+  return cachedUser;
+}
+export const googleNext = () => sessionStorage.getItem('tp.gnext') || 'lich-su.html';

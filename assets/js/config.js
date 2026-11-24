@@ -8,7 +8,8 @@ export const CONFIG = {
   // ---- Đăng nhập (Supabase). Để trống => chạy chế độ demo, tài khoản lưu trong trình duyệt.
   SUPABASE_URL: 'https://jkhxovqwycgzrzgnreyg.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_cik7QoBVaULXndxS5EB9Lw_1qiv2Bk4',
-  // Nút đăng nhập hiển thị. Apple cần tài khoản Apple Developer (trả phí) – để false nếu chưa có.
+  // Nhà cung cấp đã BẬT trong Supabase → true. Nút vẫn hiện khi false nhưng bấm sẽ báo "chưa bật".
+  // Apple cần tài khoản Apple Developer (trả phí).
   AUTH_PROVIDERS: { google: true, apple: false },
   // Client ID loại "Web application" trong Google Cloud (dạng 1234-abc.apps.googleusercontent.com) – là thông tin công khai.
   // Điền vào thì nút Google mở cửa sổ đăng nhập ghi tên web của bạn thay vì "...supabase.co". Để trống = cách cũ.
