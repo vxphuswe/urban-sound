@@ -1257,3 +1257,21 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 .oauth .btn.loading { opacity: .65; pointer-events: none; }
 .oauth .btn.loading svg { animation: spin 1s linear infinite; }
 @media (max-width: 380px) { .oauth .btn { font-size: .86rem; padding: 0 6px; gap: 6px; } }
+
+/* ---------- Điện thoại: khung camera giống máy tính, không phóng to toàn màn hình */
+/* Thẻ video luôn "có mặt" trong trang (không display:none) để iOS không mở trình phát toàn màn hình */
+.stage .cam-video { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: 0; top: 0; }
+.stage.cam-mode .cam-video { width: 100%; height: 100%; inset: 0; opacity: 1; }
+.stage .cam-video::-webkit-media-controls, .stage .cam-video::-webkit-media-controls-start-playback-button { display: none !important; -webkit-appearance: none; }
+.stage.cam-mode { border: 2px solid var(--line-2); }
+@media (max-width: 640px) {
+  .stage.cam-mode { margin-inline: 0; border-radius: var(--radius-lg); max-height: 70vh; }
+  .controls { flex-wrap: nowrap; gap: 6px; padding: 12px 6px; }
+  .ctl { width: 44px; height: 44px; }
+  .ctl.big { height: 44px; padding: 0 14px; font-size: .92rem; }
+  .ctl-label { font-size: .66rem; }
+}
+@media (max-width: 370px) { .ctl { width: 40px; height: 40px; } .ctl.big { padding: 0 10px; } .ctl.big span { font-size: .86rem; } }
+/* Chạm nhanh hai lần không làm trang phóng to */
+button, .btn, .ctl, .chip, a { touch-action: manipulation; }
+@media (max-width: 640px) { input, select, textarea, .input, .select { font-size: 16px; } } /* iOS không tự phóng to khi chạm vào ô nhập */

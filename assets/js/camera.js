@@ -7,6 +7,19 @@ export class Camera {
     this.video = video;
     this.facing = isMobile() ? 'environment' : 'user'; // điện thoại: mặc định camera sau
     this.stream = null;
+    // iPhone/iPad: BẮT BUỘC phát "trong trang", nếu không iOS tự mở trình phát toàn màn hình
+    // và khi thoát ra thì tạm dừng luôn camera.
+    video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('muted', ''); video.setAttribute('autoplay', '');
+    video.setAttribute('disablepictureinpicture', ''); video.setAttribute('disableremoteplayback', '');
+    video.playsInline = true; video.muted = true; video.controls = false;
+    const resume = () => { if (this.stream && video.paused) video.play().catch(() => {}); };
+    // Lỡ bị mở toàn màn hình (iOS cũ) → thoát ngay và phát tiếp trong khung
+    video.addEventListener('webkitbeginfullscreen', () => { try { video.webkitExitFullscreen(); } catch { /* bỏ qua */ } });
+    video.addEventListener('webkitendfullscreen', () => setTimeout(resume, 50));
+    // Bị tạm dừng (thoát toàn màn hình, chuyển tab rồi quay lại…) → tự phát tiếp
+    video.addEventListener('pause', () => setTimeout(resume, 120));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(resume, 200); });
   }
 
   get on() { return !!this.stream; }
@@ -65,8 +78,9 @@ export class Camera {
   get track() { return this.stream?.getVideoTracks()[0]; }
 
   stop() {
-    this.stream?.getTracks().forEach((t) => t.stop());
-    this.stream = null;
+    const st = this.stream;
+    this.stream = null; // đặt trước để sự kiện "pause" không tự phát lại
+    st?.getTracks().forEach((t) => t.stop());
     if (this.video) this.video.srcObject = null;
   }
 }
