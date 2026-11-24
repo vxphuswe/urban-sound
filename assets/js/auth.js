@@ -140,6 +140,6 @@ export async function renderGoogleButton(el, { onDone, onError } = {}) {
   });
   window.google.accounts.id.renderButton(el, {
     type: 'standard', theme: document.documentElement.dataset.theme === 'light' ? 'outline' : 'filled_black',
-    size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', locale: 'vi', width: Math.min(400, Math.max(220, el.clientWidth || 320)),
+    size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', locale: 'vi', width: Math.min(400, Math.max(240, el.clientWidth || 360)),
   });
 }

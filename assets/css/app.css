@@ -1246,3 +1246,7 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 #group-table .kind-row td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tone) 60%, transparent); }
 #group-table .kind-row .badge { white-space: nowrap; }
 #group-table tr.tone-red { --tone: var(--red); } #group-table tr.tone-amber { --tone: var(--amber); } #group-table tr.tone-blue { --tone: var(--blue); } #group-table tr.tone-green { --tone: var(--green); } #group-table tr.tone-gray { --tone: var(--gray); }
+/* Nút Google chính thức: một hàng, rộng hết khung, nền trong suốt */
+.oauth.has-gsi, .oauth:not(:has(#btn-apple)) { grid-template-columns: 1fr; }
+.gsi-holder { width: 100%; min-height: 44px; display: flex; justify-content: center; border-radius: 999px; }
+.gsi-holder iframe { color-scheme: light; margin: 0 auto !important; }

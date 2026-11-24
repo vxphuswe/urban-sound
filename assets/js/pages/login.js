@@ -1,5 +1,6 @@
 import { initLayout, $, $$, toast, esc } from '../ui.js';
 import { BRAND } from '../icons.js';
+import { CONFIG } from '../config.js';
 import { currentUser, signInWithProvider, sendEmailCode, verifyEmailCode, signOut, isDemoAuth, supabase, hasGoogleGis, renderGoogleButton } from '../auth.js';
 
 initLayout();
@@ -34,12 +35,16 @@ if (hasGoogleGis()) {
   const holder = document.createElement('div');
   holder.className = 'gsi-holder';
   $('#btn-google').after(holder);
+  $('.oauth').classList.add('has-gsi');
   renderGoogleButton(holder, {
     onDone: (u) => { toast(`Đăng nhập thành công. Chào ${u.name}!`, { tone: 'success' }); showDone(u); },
     onError: (e) => toast(e.message, { tone: 'error', ms: 8000 }),
   }).then(() => { $('#btn-google').hidden = true; }).catch(() => holder.remove()); // lỗi tải → giữ nút cũ
 }
-$('#btn-apple').addEventListener('click', () => signInWithProvider('apple').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
+// Ẩn nút của nhà cung cấp chưa bật trong config.js (Apple cần tài khoản Apple Developer trả phí)
+if (!CONFIG.AUTH_PROVIDERS?.apple) $('#btn-apple').remove();
+if (!CONFIG.AUTH_PROVIDERS?.google) $('#btn-google').remove();
+$('#btn-apple')?.addEventListener('click', () => signInWithProvider('apple').catch((e) => toast(e.message, { tone: 'error', ms: 6000 })));
 
 $('#email-form').addEventListener('submit', async (e) => {
   e.preventDefault();
