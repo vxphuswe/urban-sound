@@ -1239,3 +1239,10 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 .city-band .bubble { animation: bubbleup2 4.2s ease-out forwards; }
 @keyframes bubbleup2 { 0% { opacity: 0; transform: translate(0, 14px) scale(.7); } 14% { opacity: 1; transform: translate(0, 0) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--drift), -70px); } }
 .hero-night .hero-sub { max-width: 52ch; }
+/* Bảng nhóm âm thanh xếp theo màu */
+#group-table .kind-head td { padding-top: 22px; padding-bottom: 10px; background: color-mix(in srgb, var(--tone) 7%, transparent); border-top: 2px solid color-mix(in srgb, var(--tone) 55%, transparent); }
+#group-table .kind-head .badge { margin-right: 10px; font-size: .85rem; }
+#group-table .kind-head .muted { font-size: .84rem; }
+#group-table .kind-row td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tone) 60%, transparent); }
+#group-table .kind-row .badge { white-space: nowrap; }
+#group-table tr.tone-red { --tone: var(--red); } #group-table tr.tone-amber { --tone: var(--amber); } #group-table tr.tone-blue { --tone: var(--blue); } #group-table tr.tone-green { --tone: var(--green); } #group-table tr.tone-gray { --tone: var(--gray); }

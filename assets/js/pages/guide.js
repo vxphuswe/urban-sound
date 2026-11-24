@@ -20,10 +20,18 @@ $('#band-legend').innerHTML = BANDS.map((b) => {
   return `<div class="row" style="gap:12px;flex-wrap:nowrap"><span class="badge tone-${b.tone} tone-bg" style="min-width:150px">${icon(b.icon, { size: 14 })} ${b.label}</span><span class="mono muted" style="font-size:.9rem">${range}</span></div>`;
 }).join('');
 
-$('#group-table tbody').innerHTML = GROUPS.filter((g) => !['noise'].includes(g.id)).map((g) => `
-  <tr><td><div class="row" style="gap:10px;flex-wrap:nowrap">${dot(g, 15)}<b>${esc(g.vi)}</b></div></td>
-  <td><span class="badge tone-${KIND_INFO[g.kind].tone} tone-bg">${KIND_INFO[g.kind].label}</span></td>
+// Xếp theo màu (mức độ): đỏ nguy hiểm → vàng cần chú ý → xanh dương con người → xanh lá thiên nhiên → xám tiếng nền
+const ORDER = ['danger', 'caution', 'people', 'nature', 'ambient'];
+$('#group-table tbody').innerHTML = ORDER.map((k) => {
+  const gs = GROUPS.filter((g) => g.kind === k && g.id !== 'noise');
+  if (!gs.length) return '';
+  const tone = KIND_INFO[k].tone;
+  return `<tr class="kind-head tone-${tone}"><td colspan="3"><span class="badge tone-${tone} tone-bg">${KIND_INFO[k].label}</span><span class="muted">${gs.length} nhóm · ${esc(KIND_DESC[k])}</span></td></tr>` +
+    gs.map((g) => `
+  <tr class="kind-row tone-${tone}"><td><div class="row" style="gap:10px;flex-wrap:nowrap">${dot(g, 15)}<b>${esc(g.vi)}</b></div></td>
+  <td><span class="badge tone-${tone} tone-bg">${KIND_INFO[k].label}</span></td>
   <td class="muted hide-sm" style="font-size:.82rem">${esc(g.names.slice(0, 6).join(', '))}${g.range ? ', mọi thể loại nhạc' : ''}${g.names.length > 6 ? '…' : ''}</td></tr>`).join('');
+}).join('');
 
 $('#faq').innerHTML = faqHtml();
 initLayout();
