@@ -14,6 +14,8 @@ export class Camera {
     video.setAttribute('disablepictureinpicture', ''); video.setAttribute('disableremoteplayback', '');
     video.playsInline = true; video.muted = true; video.controls = false;
     const resume = () => { if (this.stream && video.paused) video.play().catch(() => {}); };
+    video.addEventListener('loadedmetadata', resume);
+    video.addEventListener('canplay', resume);
     // Lỡ bị mở toàn màn hình (iOS cũ) → thoát ngay và phát tiếp trong khung
     video.addEventListener('webkitbeginfullscreen', () => { try { video.webkitExitFullscreen(); } catch { /* bỏ qua */ } });
     video.addEventListener('webkitendfullscreen', () => setTimeout(resume, 50));
@@ -41,7 +43,8 @@ export class Camera {
     this.facing = st.facingMode || this.facing;
     this.video.srcObject = stream;
     this.video.muted = true;
-    await this.video.play().catch(() => {});
+    this.onStream?.(); // cho trang hiện khung camera TRƯỚC khi phát (iOS không phát video đang bị ẩn)
+    await this.play();
     return this;
   }
 
@@ -61,7 +64,8 @@ export class Camera {
     this.facing = st.facingMode || facing;
     this.video.srcObject = stream;
     this.video.muted = true;
-    await this.video.play().catch(() => {});
+    this.onStream?.(); // cho trang hiện khung camera TRƯỚC khi phát (iOS không phát video đang bị ẩn)
+    await this.play();
     return this;
   }
 
@@ -76,6 +80,13 @@ export class Camera {
   }
 
   get track() { return this.stream?.getVideoTracks()[0]; }
+
+  /** Phát video; trên iOS/ứng dụng (Zalo, Messenger…) có thể bị chặn nếu không do người dùng chạm → trả về false. */
+  async play() {
+    try { await this.video.play(); return true; } catch { return false; }
+  }
+  /** Camera đã mở nhưng hình chưa chạy (cần một lần chạm). */
+  get stalled() { return this.on && (this.video.paused || !this.video.videoWidth); }
 
   stop() {
     const st = this.stream;

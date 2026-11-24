@@ -547,7 +547,7 @@ function drawScene(g, W, H, overlay = false) {
     g.fillStyle = grd; g.fillRect(0, 0, W, H);
     g.textAlign = 'center';
     g.fillStyle = '#fff'; g.font = `700 ${Math.round(30 * k)}px ${FONT}`;
-    g.fillText(cam.on ? 'Đang mở camera…' : h.label, W / 2, H * 0.42);
+    g.fillText(cam.on ? 'Chạm vào khung để hiện camera' : h.label, W / 2, H * 0.42);
     g.fillStyle = 'rgba(255,255,255,.65)'; g.font = `400 ${Math.round(14 * k)}px ${FONT}`;
     wrapLines(g, cam.on ? '' : h.sub, W * 0.8).slice(0, 2).forEach((l, i) => g.fillText(l, W / 2, H * 0.42 + 30 * k + i * 20 * k));
     g.textAlign = 'left';
@@ -635,7 +635,7 @@ function drawScene(g, W, H, overlay = false) {
   g.shadowColor = 'rgba(0,0,0,.7)'; g.shadowBlur = 4;
   g.fillText('Urban Sound · AI nghe âm thanh', 14, H - (S.running ? sh : 0) - 10);
   g.textAlign = 'right';
-  g.fillText(cam.ready ? (cam.facing === 'environment' ? 'Camera sau' : 'Camera trước') : 'Không có camera', W - 14, H - (S.running ? sh : 0) - 10);
+  g.fillText(cam.ready ? (cam.facing === 'environment' ? 'Camera sau' : 'Camera trước') : cam.on ? 'Đang mở camera…' : 'Không có camera', W - 14, H - (S.running ? sh : 0) - 10);
   g.textAlign = 'left'; g.shadowBlur = 0;
 }
 
@@ -652,6 +652,14 @@ function updateVisual() {
   vid.classList.toggle('mirror', cam.on && cam.mirror);
 }
 cam.video.addEventListener('loadedmetadata', updateVisual);
+cam.onStream = () => { $('#stage').classList.add('cam-mode'); updateVisual(); };
+// iOS / trình duyệt trong Zalo, Messenger: hình camera chỉ chạy sau một lần chạm → hiện nút "Chạm để hiện camera"
+const tapCam = $('#cam-tap');
+function checkStalled() { tapCam.hidden = !cam.stalled; }
+setInterval(checkStalled, 800);
+async function wake() { if (cam.on) { await cam.play(); checkStalled(); updateVisual(); } }
+tapCam.addEventListener('click', wake);
+$('#stage').addEventListener('pointerdown', wake);
 cam.video.addEventListener('resize', updateVisual);
 
 async function afterCam() {

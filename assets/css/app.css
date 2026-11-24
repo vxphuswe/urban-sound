@@ -1353,3 +1353,40 @@ button, .btn, .ctl, .chip, a { touch-action: manipulation; }
 .dev-box:not([open]) { padding-top: 16px; padding-bottom: 16px; }
 .test-hit .mono { margin-left: auto; font-size: 1.3rem; font-weight: 700; }
 .rr-core .ic { width: 38px; height: 38px; }
+
+/* ==========================================================================
+   Điện thoại: không bao giờ tràn ngang (kể cả khi bật "cỡ chữ lớn" trên Android)
+   ========================================================================== */
+html, body { overflow-x: clip; max-width: 100%; }
+.brand { min-width: 0; }
+.brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nav-wrap { min-width: 0; }
+.nav-right { min-width: 0; flex: none; }
+@media (max-width: 640px) {
+  .nav-wrap { gap: 10px; }
+  .nav-right { gap: 4px; }
+  .brand { font-size: 1.02rem; gap: 8px; flex: 1 1 auto; }
+  .brand-mark, .brand-mark svg { width: 32px; height: 32px; }
+  .auth-slot .btn { padding: 0 10px; font-size: .86rem; }
+  .icon-btn { width: 38px; height: 38px; }
+}
+@media (max-width: 370px) { .brand-name { display: none; } }
+/* Hộp cảnh báo luôn nằm gọn trong màn hình */
+.alarm-overlay { grid-template-columns: minmax(0, 560px); padding: 14px; overflow-y: auto; }
+.alarm-box { width: 100%; max-width: 560px; min-width: 0; }
+.alarm-box .row { flex-wrap: wrap; }
+.alarm-box .btn { white-space: normal; max-width: 100%; }
+@media (max-width: 640px) {
+  .alarm-box { padding: 26px 18px; }
+  .alarm-box .btn { width: 100%; }
+  .alarm-value { font-size: clamp(2.4rem, 12vw, 3.6rem); }
+}
+/* Ô số liệu (Thấp nhất / Trung bình / Cao nhất) không đẩy tràn khung */
+.stat-row, .stat-row[style] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stat { min-width: 0; }
+.stat small { display: block; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+@media (max-width: 640px) { .stat { padding: 10px; } .stat small { font-size: .68rem; letter-spacing: .02em; } .stat b { font-size: 1.1rem; } }
+.hero-cta .btn, .controls .ctl.big { white-space: normal; }
+.cam-tap { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); z-index: 7; display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; border: 0; font-weight: 700; color: var(--accent-ink); background: var(--accent); box-shadow: 0 14px 34px -10px var(--accent); animation: recpulse 1.4s ease-in-out infinite; }
+.stage:not(.cam-mode) .cam-tap { display: none; }
+.cam-tap { white-space: nowrap; font-size: .95rem; }
