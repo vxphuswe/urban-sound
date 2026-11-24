@@ -62,8 +62,13 @@ const svgStreet = `
     <path d="M0 -6l12-14h16l6 14" stroke="#ef5d68" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M10 -22c6-4 16-4 20 0v5H10z" fill="#ef5d68"/>
     <circle cx="20" cy="-40" r="7" fill="#f2c14e"/><path d="M20 -33l-3 13 12 2" stroke="#2f4b8a" stroke-width="6" stroke-linecap="round" fill="none"/>
     <path class="st-head-l" d="M40 -16l60 -10v22z"/><g class="st-exh"><circle cx="-8" cy="-8" r="4"/><circle cx="-16" cy="-12" r="5"/></g></g></g>
-  <g class="st-lane-b"><g data-say="Bíp bíp!|Tin tin!" class="st-car"><path d="M0 -10l10-18h44l14 18h12v12H0z" fill="#3b82ff"/><path d="M14 -26h18v14H8zM36 -26h16l10 14H36z" class="st-glass"/>
-    <circle cx="18" cy="2" r="8" class="st-wheel"/><circle cx="64" cy="2" r="8" class="st-wheel"/><path class="st-head-l" d="M0 -6l-70 -12v26z"/></g></g>`;
+  <g class="st-lane-b"><g data-say="Bíp bíp!|Tin tin!" class="st-car">
+    <!-- xe chạy sang TRÁI: mũi xe (nắp capo thấp) ở bên trái, đèn pha chiếu về phía trước -->
+    <g transform="translate(80 0) scale(-1 1)"><path d="M0 -10l10-18h44l14 18h12v12H0z" fill="#3b82ff"/><path d="M14 -26h18v14H8zM36 -26h16l10 14H36z" class="st-glass"/>
+      <circle cx="18" cy="2" r="8" class="st-wheel"/><circle cx="64" cy="2" r="8" class="st-wheel"/>
+      <rect x="0" y="-8" width="4" height="5" rx="1" fill="#ff4d4d"/></g>
+    <rect x="0" y="-8" width="5" height="5" rx="1.5" fill="#ffe27a"/>
+    <path class="st-head-l" d="M0 -6l-70 -12v26z"/></g></g>`;
 const st = $('#street');
 if (st) st.innerHTML = `<g class="street-layer">${svgStreet}</g>`;
 
