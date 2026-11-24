@@ -10,31 +10,22 @@ import { load, streak, nKinds, BADGES } from '../journey.js';
 (function skyline() {
   const svg = $('#skyline');
   if (!svg) return;
-  let x = 0, seed = 7;
+  let x = 0, seed = 11;
   const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-  const blds = [], bars = [];
+  const blds = [], wins = [];
   while (x < 1440) {
-    const w = 46 + Math.round(rnd() * 70), h = 90 + Math.round(rnd() * 210);
-    const y = 360 - h;
-    blds.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`);
-    if (rnd() > 0.65) blds.push(`<rect x="${x + w / 2 - 1}" y="${y - 24}" width="2" height="24"/>`); // ăng-ten
-    const lamp = rnd() > 0.35;
-    bars.push(`<rect class="eq" x="${x}" y="${y}" width="${w}" height="${h}" fill="${lamp ? '#ffb547' : '#2ee6c5'}" style="animation-duration:${(1.4 + rnd() * 1.8).toFixed(2)}s;animation-delay:-${(rnd() * 3).toFixed(2)}s"/>`);
-    x += w + 4 + Math.round(rnd() * 10);
+    const w = 60 + Math.round(rnd() * 80), h = 70 + Math.round(rnd() * 150), y = 260 - h;
+    blds.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2"/>`);
+    // vài ô cửa sổ sáng đèn, cố định (không nhấp nháy)
+    for (let wy = y + 14; wy < 240; wy += 22) for (let wx = x + 10; wx < x + w - 14; wx += 18) if (rnd() < 0.14) wins.push(`<rect x="${wx}" y="${wy}" width="8" height="10" rx="1"/>`);
+    x += w + 6 + Math.round(rnd() * 12);
   }
-  svg.innerHTML = `<defs>
-      <pattern id="win" width="14" height="18" patternUnits="userSpaceOnUse"><rect x="4" y="5" width="6" height="8" rx="1" fill="#fff"/></pattern>
-      <mask id="winmask"><rect width="1440" height="360" fill="url(#win)"/></mask>
-      <linearGradient id="sky-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--bg)" stop-opacity="0"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
-    </defs>
-    <g class="blds">${blds.join('')}</g>
-    <g mask="url(#winmask)">${bars.join('')}</g>
-    <rect y="300" width="1440" height="60" fill="url(#sky-fade)"/>`;
+  svg.innerHTML = `<g class="blds">${blds.join('')}</g><g class="wins">${wins.join('')}</g>`;
 })();
 
 // ------------------------------------------------------------------ Bầu trời: sao (đêm), tiêu đề hiện từng chữ, bong bóng âm thanh bay lên từ dãy phố
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-$('#stars').innerHTML = Array.from({ length: 46 }, () => `<i style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 70).toFixed(1)}%;--s:${(1 + Math.random() * 2).toFixed(1)}px;animation-delay:-${(Math.random() * 4).toFixed(1)}s;animation-duration:${(2 + Math.random() * 3).toFixed(1)}s"></i>`).join('');
+$('#stars').innerHTML = Array.from({ length: 18 }, () => `<i style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 55).toFixed(1)}%;--s:${(1 + Math.random() * 2).toFixed(1)}px;animation-delay:-${(Math.random() * 4).toFixed(1)}s;animation-duration:${(2 + Math.random() * 3).toFixed(1)}s"></i>`).join('');
 
 const h1 = document.querySelector('.hero-night h1');
 if (h1 && !REDUCED) h1.innerHTML = h1.textContent.split(' ').map((w, i) => `<span class="w" style="animation-delay:${0.08 * i + 0.1}s">${esc(w)}</span>`).join(' ');
@@ -43,7 +34,7 @@ if (h1 && !REDUCED) h1.innerHTML = h1.textContent.split(' ').map((w, i) => `<spa
 // Mỗi bong bóng âm thanh bay ra từ đúng nguồn phát của nó.
 const tree = (x, s = 1) => `<g class="st-tree" transform="translate(${x} 92) scale(${s})"><rect x="-4" y="-34" width="8" height="34" rx="3" class="st-trunk"/>
   <g class="st-crown"><circle cx="0" cy="-52" r="26"/><circle cx="-18" cy="-40" r="18"/><circle cx="18" cy="-40" r="18"/></g></g>`;
-const lamp = (x) => `<g class="st-lamp" transform="translate(${x} 92)"><path d="M0 0v-70h18" class="st-pole"/><path class="st-glow" d="M14 -66l-30 66h64z"/><rect x="10" y="-72" width="16" height="6" rx="3" class="st-bulb"/></g>`;
+const lamp = (x) => `<g class="st-lamp" transform="translate(${x} 92)"><path d="M0 0v-70h18" class="st-pole"/><circle class="st-glow" cx="18" cy="-64" r="14"/><rect x="10" y="-72" width="16" height="6" rx="3" class="st-bulb"/></g>`;
 const person = (x, shirt, skin, hair, flip = 1, cls = '') => `<g class="st-person ${cls}" transform="translate(${x} 92) scale(${flip} 1)">
   <path d="M-7 0l2-22h10l2 22" class="st-legs"/><path d="M-10 -20c0-12 4-18 10-18s10 6 10 18z" fill="${shirt}"/>
   <g class="st-head"><circle cx="0" cy="-46" r="8" fill="${skin}"/><path d="M-8 -48c0-7 4-10 8-10s8 3 8 10c-3-3-5-4-8-4s-5 1-8 4z" fill="${hair}"/>
@@ -54,15 +45,12 @@ const svgStreet = `
   <rect x="0" y="98" width="1440" height="52" class="st-road"/>
   <path d="M0 124h1440" class="st-lane"/>
   ${tree(110, 1.05)}${tree(470, .9)}${tree(1110)}${tree(1360, .95)}
-  ${lamp(300)}${lamp(840)}${lamp(1240)}
+  ${lamp(330)}${lamp(1240)}
   <g class="st-bird" data-say="Líu lo" transform="translate(470 40)"><path d="M0 0c6-6 12-6 16 0-4 2-10 2-16 0z" fill="#3fa598"/><circle cx="13" cy="-2" r="1.5" fill="#1d2b2a"/><path d="M16 -1l5 1-5 1z" fill="#f29b38"/></g>
   <g data-say="Gâu gâu" class="st-dog" transform="translate(586 92)"><path class="st-tail" d="M-14 -14c-6-4-8-10-6-14" stroke="#b9763d" stroke-width="4" stroke-linecap="round" fill="none"/>
     <rect x="-16" y="-18" width="26" height="12" rx="6" fill="#d9944f"/><path d="M-12 -6v6M4 -6v6" stroke="#b9763d" stroke-width="4" stroke-linecap="round"/>
     <g class="st-dhead"><circle cx="12" cy="-22" r="8" fill="#e3a462"/><path d="M8 -28l-4-6 6 2z" fill="#8a5428"/><circle cx="15" cy="-23" r="1.5" fill="#24170e"/><circle cx="20" cy="-20" r="2" fill="#24170e"/></g></g>
   <g data-say="Hôm nay đi đâu?|Đi cà phê không?|Trời đẹp ghê!" class="st-chat">${person(660, '#5b8def', '#f4c7a1', '#2c2018', 1, 'talk-a')}${person(700, '#ef5d68', '#f0bf95', '#6b3b22', -1, 'talk-b')}</g>
-  <g data-say="Bánh mì nóng giòn đây!" class="st-vendor" transform="translate(760 92)"><rect x="-6" y="-30" width="36" height="22" rx="4" fill="#f2c14e"/><rect x="-6" y="-34" width="36" height="6" rx="3" fill="#ef5d68"/>
-    <circle cx="2" cy="-4" r="5" class="st-wheel"/><circle cx="22" cy="-4" r="5" class="st-wheel"/>
-    <g transform="translate(-16 0)"><path d="M-6 0l2-22h10l2 22" class="st-legs"/><path d="M-9 -20c0-12 4-18 9-18s9 6 9 18z" fill="#3fa598"/><circle cx="0" cy="-46" r="8" fill="#f1c19c"/><path d="M-11 -50h22l-11-10z" fill="#e8d49a"/></g></g>
   <g data-say="Rè rè rè!|Khoan khoan!" class="st-work" transform="translate(960 92)">
     <path d="M-34 0l6-18 6 18z" fill="#ff7a2e"/><path d="M-32 -8h8" stroke="#fff" stroke-width="2"/>
     <rect x="40" y="-22" width="44" height="8" rx="2" class="st-barrier"/><path d="M44 -14v14M80 -14v14" stroke="#9aa4b1" stroke-width="3"/>
@@ -83,7 +71,7 @@ let bi = 0;
 function bubble() {
   if (document.hidden || REDUCED) return;
   const box = $('#bubbles');
-  if (!box || box.childElementCount > 5) return;
+  if (!box || box.childElementCount >= 3) return; // tối đa 3 bong bóng cùng lúc cho dễ nhìn
   const srcs = [...document.querySelectorAll('#street [data-say]')];
   const src = srcs[bi++ % srcs.length];
   if (!src) return;
@@ -102,7 +90,7 @@ function bubble() {
   box.appendChild(el);
   el.addEventListener('animationend', () => el.remove());
 }
-setInterval(bubble, 1300); setTimeout(bubble, 600);
+setInterval(bubble, 2200); setTimeout(bubble, 800);
 
 // ------------------------------------------------------------------ Ví dụ kết quả (đổi cảnh mỗi vài giây)
 const REEL = [

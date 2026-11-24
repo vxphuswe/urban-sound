@@ -1197,3 +1197,45 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 @media (prefers-reduced-motion: reduce) { .street * { animation: none !important; } .st-lane-a { transform: translate(200px, 128px); } .st-lane-b { transform: translate(1100px, 112px); } }
 [data-theme="light"] .st-glow { animation: none; opacity: 0; }
 @media (max-width: 640px) { .sun, .moon { width: 52px; height: 52px; top: 18px; right: 5%; } .sun i { inset: -22px; -webkit-mask: radial-gradient(circle, transparent 28px, #000 30px, transparent 50px); mask: radial-gradient(circle, transparent 28px, #000 30px, transparent 50px); } .moon::after { left: 14px; top: 26px; width: 9px; height: 9px; } }
+
+/* ==========================================================================
+   Bản hoàn thiện: gọn mắt. Đầu trang yên tĩnh; con phố là một dải riêng.
+   ========================================================================== */
+.hero-night { padding: 88px 0 72px; }
+.hero-night h1 { font-size: clamp(2.4rem, 5vw, 4rem); max-width: 13ch; margin-bottom: 20px; }
+.hero-night .hero-sub { max-width: 46ch; }
+.hero-note { display: block; margin-top: 18px; font-size: .86rem; color: var(--muted); }
+.sun, .moon { width: 70px; height: 70px; top: 40px; right: 7%; }
+.sun i { inset: -26px; -webkit-mask: radial-gradient(circle, transparent 38px, #000 40px, transparent 62px); mask: radial-gradient(circle, transparent 38px, #000 40px, transparent 62px); }
+.moon { box-shadow: 0 0 40px 6px rgba(230, 225, 190, .16), inset -10px -8px 0 rgba(160, 150, 110, .22); }
+.moon::after { left: 18px; top: 36px; width: 11px; height: 11px; }
+.stars i { animation-duration: 5s !important; opacity: .7; }
+.cloud { opacity: 0; } [data-theme="light"] .cloud { opacity: .8; }
+
+/* Dải phố */
+.city-band { position: relative; height: 330px; overflow: hidden; isolation: isolate; margin-bottom: 40px;
+  background: linear-gradient(180deg, transparent 0, color-mix(in srgb, var(--violet) 8%, transparent) 60%, transparent); }
+.city-band .skyline { position: absolute; left: 0; right: 0; bottom: 62px; width: 100%; height: 230px; z-index: 0; opacity: 1; }
+.city-band .skyline .blds { fill: color-mix(in srgb, var(--surface-2) 85%, var(--bg)); }
+.city-band .skyline .wins { fill: #ffcf7a; opacity: .55; }
+[data-theme="light"] .city-band .skyline .blds { fill: #d5def3; }
+[data-theme="light"] .city-band .skyline .wins { fill: #ffffff; opacity: .9; }
+.city-band .street { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; z-index: 1; }
+.city-band .bubbles { position: absolute; inset: 0; z-index: 2; height: auto; }
+.band-cap { position: absolute; left: 0; right: 0; top: 18px; z-index: 3; margin: 0 auto; color: var(--muted); font-size: .95rem; }
+.st-glow { opacity: .35; animation: none; } [data-theme="light"] .st-glow { opacity: 0; }
+.st-head-l { fill: rgba(255, 230, 150, .16); }
+.bubble { font-size: .82rem; padding: 6px 12px 6px 9px; }
+@media (max-width: 900px) {
+  .hero-night { padding: 56px 0 40px; }
+  .city-band { height: 260px; }
+  .city-band .skyline { height: 170px; bottom: 50px; }
+  .city-band .street { height: 120px; }
+  .band-cap { font-size: .85rem; }
+}
+/* Nhịp khoảng cách thống nhất giữa các khối */
+.section-sm { padding: 48px 0; }
+.journey { padding-top: 0; }
+.city-band .bubble { animation: bubbleup2 4.2s ease-out forwards; }
+@keyframes bubbleup2 { 0% { opacity: 0; transform: translate(0, 14px) scale(.7); } 14% { opacity: 1; transform: translate(0, 0) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--drift), -70px); } }
+.hero-night .hero-sub { max-width: 52ch; }
