@@ -1157,3 +1157,43 @@ html.vt-theme::view-transition-old(root) { z-index: 1; } html.vt-theme::view-tra
 .page-head h1 .w { display: inline-block; animation: wordup .6s cubic-bezier(.2,.9,.3,1.2) both; }
 .tool > *, .tool-main, .tool-side { min-width: 0; }
 .tool-side, .tool-main { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- Đường phố trong hero (xe chạy, người nói chuyện, khoan đường…) */
+.street { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 150px; z-index: -1; pointer-events: none; overflow: visible; }
+.hero-night .skyline { bottom: 40px; }
+.bubbles { bottom: 0; top: 0; height: auto; z-index: 0; }
+.bubble { translate: -50% 0; }
+.street * { transform-box: fill-box; }
+.st-road { fill: #171c36; } .st-walk { fill: #252c50; } .st-lane { stroke: #5b648f; stroke-width: 3; stroke-dasharray: 26 22; }
+.st-trunk { fill: #4a3a2a; } .st-crown { fill: #1d5a4b; } .st-pole { stroke: #3a4166; stroke-width: 4; fill: none; } .st-bulb { fill: #ffd27a; }
+.st-glow { fill: #ffcf70; opacity: .18; } .st-wheel { fill: #20243a; } .st-legs { stroke: #2f3b55; stroke-width: 5; stroke-linecap: round; fill: none; }
+.st-arm { stroke: currentColor; stroke-width: 0; } .st-glass { fill: #9fc6ff; } .st-head-l { fill: rgba(255, 230, 150, .28); } .st-barrier { fill: #ff7a2e; }
+.st-dust circle { fill: #b9a483; }
+[data-theme="light"] .st-road { fill: #9aa3be; } [data-theme="light"] .st-walk { fill: #dde2f2; } [data-theme="light"] .st-lane { stroke: #fff; }
+[data-theme="light"] .st-crown { fill: #6cc28a; } [data-theme="light"] .st-trunk { fill: #8a6a45; } [data-theme="light"] .st-pole { stroke: #8890b0; }
+[data-theme="light"] .st-glow, [data-theme="light"] .st-head-l { opacity: 0; } [data-theme="light"] .st-bulb { fill: #e6e9f6; }
+[data-theme="light"] .st-wheel { fill: #2b2f3a; } [data-theme="light"] .st-glass { fill: #dff1ff; } [data-theme="light"] .st-dust circle { fill: #d9c39b; }
+.st-crown { transform-origin: 50% 100%; animation: sway 4s ease-in-out infinite; }
+.st-tree:nth-of-type(2n) .st-crown { animation-delay: -2s; }
+@keyframes sway { 50% { transform: rotate(3deg); } }
+.st-glow { animation: glow 3s ease-in-out infinite; } @keyframes glow { 50% { opacity: .28; } }
+.st-lane-a { animation: drive-a 10s linear infinite; }
+@keyframes drive-a { from { transform: translate(-160px, 128px); } to { transform: translate(1620px, 128px); } }
+.st-lane-b { animation: drive-b 14s linear infinite; animation-delay: -5s; }
+@keyframes drive-b { from { transform: translate(1620px, 112px); } to { transform: translate(-260px, 112px); } }
+.st-moto, .st-car { animation: bump .25s ease-in-out infinite alternate; } @keyframes bump { to { transform: translateY(-1.5px); } }
+.st-exh circle { fill: #c7cde0; animation: sc-puff .8s ease-out infinite; } .st-exh circle:nth-child(2) { animation-delay: .4s; }
+.talk-a .st-head, .talk-b .st-head { transform-origin: 50% 100%; animation: nod 1.4s ease-in-out infinite; } .talk-b .st-head { animation-delay: -.7s; }
+@keyframes nod { 30% { transform: rotate(-6deg); } 60% { transform: rotate(4deg); } }
+.st-mouth { transform-origin: 50% 50%; animation: mouth .3s steps(2) infinite; } .talk-b .st-mouth { animation-delay: .15s; }
+@keyframes mouth { 50% { transform: scaleX(.3); } }
+.st-tail { transform-origin: 100% 100%; animation: sc-wag .3s ease-in-out infinite alternate; }
+.st-dhead { transform-origin: 0% 100%; animation: sc-bark 1.2s ease-in-out infinite; }
+.st-jack { animation: sc-vibe .06s linear infinite alternate; }
+.st-dust circle { transform-origin: 50% 50%; animation: sc-puff 1s ease-out infinite; } .st-dust circle:nth-child(2) { animation-delay: .35s; } .st-dust circle:nth-child(3) { animation-delay: .7s; }
+.st-bird { animation: birdhop 3s ease-in-out infinite; } @keyframes birdhop { 0%, 70%, 100% { transform: translate(470px, 40px); } 80% { transform: translate(470px, 32px); } }
+.st-vendor .st-wheel { fill: #2b2f3a; }
+@media (max-width: 900px) { .street { height: 120px; } .hero-night .skyline { bottom: 30px; } }
+@media (prefers-reduced-motion: reduce) { .street * { animation: none !important; } .st-lane-a { transform: translate(200px, 128px); } .st-lane-b { transform: translate(1100px, 112px); } }
+[data-theme="light"] .st-glow { animation: none; opacity: 0; }
+@media (max-width: 640px) { .sun, .moon { width: 52px; height: 52px; top: 18px; right: 5%; } .sun i { inset: -22px; -webkit-mask: radial-gradient(circle, transparent 28px, #000 30px, transparent 50px); mask: radial-gradient(circle, transparent 28px, #000 30px, transparent 50px); } .moon::after { left: 14px; top: 26px; width: 9px; height: 9px; } }
