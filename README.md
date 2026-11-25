@@ -2,13 +2,17 @@
 
 Web nhận diện âm thanh đô thị, đo độ ồn và phiên âm lời nói. Mở trang, tải lên một bản ghi hoặc bật micro, rồi nhận câu trả lời: **đây là tiếng gì, xuất hiện ở giây nào, to bao nhiêu và có hại cho tai không**. AI chạy ngay trong trình duyệt nên âm thanh không rời khỏi máy người dùng.
 
-Đồ án cuối kỳ môn Nhập môn Trí tuệ nhân tạo (Introduction to AI), VNUK.
+Đồ án cuối kỳ môn Nhập môn Trí tuệ nhân tạo (Introduction to AI), VNUK, Đại học Đà Nẵng.
 
-| | |
+| Tài liệu | Liên kết |
 | --- | --- |
-| Bản chạy | https://urban-sound-ai.vercel.app |
-| Báo cáo cuối kỳ (IEEE) | [`docs/final-report/`](docs/final-report/) |
-| Báo cáo tuần 1–5 | [`docs/weekly/`](docs/weekly/) |
+| Bản chạy trực tuyến | https://urban-sound-ai.vercel.app |
+| Báo cáo cuối kỳ (mẫu IEEE) | [Xem PDF](docs/final-report/UrbanSound_Final_Report.pdf) · [Tải Word](docs/final-report/UrbanSound_Final_Report.docx) |
+| Báo cáo Tuần 1 — Khởi động dự án | [Xem PDF](docs/weekly/BaoCao_Tuan1_UrbanSound.pdf) · [Tải Word](docs/weekly/BaoCao_Tuan1_UrbanSound.docx) |
+| Báo cáo Tuần 2 — Bài toán và hiểu dữ liệu | [Xem PDF](docs/weekly/BaoCao_Tuan2_UrbanSound.pdf) · [Tải Word](docs/weekly/BaoCao_Tuan2_UrbanSound.docx) |
+| Báo cáo Tuần 3 — Chuẩn bị dữ liệu và mô hình cơ sở | [Xem PDF](docs/weekly/BaoCao_Tuan3_UrbanSound.pdf) · [Tải Word](docs/weekly/BaoCao_Tuan3_UrbanSound.docx) |
+| Báo cáo Tuần 4 — Phát triển và đánh giá mô hình | [Xem PDF](docs/weekly/BaoCao_Tuan4_UrbanSound.pdf) · [Tải Word](docs/weekly/BaoCao_Tuan4_UrbanSound.docx) |
+| Báo cáo Tuần 5 — Tích hợp cuối và bàn giao | [Xem PDF](docs/weekly/BaoCao_Tuan5_UrbanSound.pdf) · [Tải Word](docs/weekly/BaoCao_Tuan5_UrbanSound.docx) |
 | Huấn luyện thêm dữ liệu | [`training/README.md`](training/README.md) |
 | Mô hình CNN bản cũ (UrbanSound8K) | [`legacy/`](legacy/) |
 
@@ -28,11 +32,16 @@ Web nhận diện âm thanh đô thị, đo độ ồn và phiên âm lời nói
 
 ## Thông tin nhóm
 
-**Tên nhóm:** Batman · **Môn:** Nhập môn Trí tuệ nhân tạo · **Trường:** VNUK, Đại học Đà Nẵng · **Giảng viên hướng dẫn:** Trần Thế Vũ
+| | |
+| --- | --- |
+| Tên nhóm | Batman |
+| Môn học | Nhập môn Trí tuệ nhân tạo (Introduction to AI) |
+| Trường | VNUK, Đại học Đà Nẵng |
+| Giảng viên hướng dẫn | Trần Thế Vũ |
 
 | Thành viên | MSSV | Vai trò |
 | --- | --- | --- |
-| Võ Xuân Phú (trưởng nhóm) | 24090006 | Phụ trách chính: dữ liệu, mô hình, web, triển khai |
+| Võ Xuân Phú (trưởng nhóm) | 24090006 | Phụ trách chính: dữ liệu, mô hình, web, triển khai, báo cáo |
 | Đinh Phùng Duy Huy | 24090016 | Hỗ trợ dữ liệu và EDA |
 | Tôn Thất Dương Đạt | 24090061 | Hỗ trợ tài liệu và kiểm thử |
 | Lê Văn Tiến Hùng | 24090008 | Hỗ trợ slide và thuyết trình |
@@ -54,22 +63,23 @@ Máy đo decibel cho biết một nơi ồn đến đâu, nhưng không cho bi�
 ### Kiến trúc
 
 ```mermaid
-flowchart LR
-  A[File / micro / link] --> B[Đọc và đổi về 16 kHz]
-  B --> C[Lọc tạp âm nền<br/>spectral gating]
-  C --> D[YAMNet TF.js<br/>521 lớp + embedding]
-  D --> E[Lớp tự huấn luyện<br/>18 lớp]
-  D --> F[Hậu xử lý<br/>trọng số, làm mượt, ngưỡng]
+flowchart TB
+  A["File / micro / link"] --> B["Đọc âm thanh, đổi về 16 kHz"]
+  B --> C["Lọc tạp âm nền (spectral gating)"]
+  B --> H["Whisper (Web Worker)"]
+  H --> I["Phiên âm .txt / .srt"]
+  C --> D["YAMNet TF.js: 521 lớp + embedding"]
+  D --> E["Lớp tự huấn luyện: 18 lớp"]
+  D --> F["Hậu xử lý: trọng số, làm mượt, ngưỡng"]
   E --> F
-  F --> G[Kết quả: tên âm, %, giây, dB, cảnh báo]
-  B --> H[Whisper Web Worker] --> I[Phiên âm .txt / .srt]
-  G -. khi đăng nhập .-> J[(Supabase<br/>Auth + Postgres + Storage)]
+  F --> G["Kết quả: tên âm, %, giây, dB, cảnh báo"]
+  G -.->|khi đăng nhập| J["Supabase: Auth, Postgres, Storage"]
 ```
 
 - **Không có server Python.** Web là các trang HTML tĩnh trên Vercel; AI chạy bằng TensorFlow.js và Transformers.js ngay trong trình duyệt. Backend là Supabase (dịch vụ có sẵn).
 - **Quyền riêng tư:** âm thanh và hình camera được xử lý trên máy người dùng. Chỉ lịch sử nhận diện được đồng bộ, và chỉ khi người dùng đăng nhập.
 - **Web vẫn chạy đầy đủ khi không cấu hình Supabase:** đăng nhập chuyển sang chế độ demo, dữ liệu lưu trong trình duyệt.
-- **Vì sao không dùng CNN của bản cũ:** CNN 10 lớp ép mọi âm lạ vào một trong 10 nhãn (ví dụ tiếng sủa trên nền máy lạnh bị nhận thành máy lạnh), và Vercel không chạy được PyTorch. Mã Flask + CNN vẫn được giữ trong `legacy/` để báo cáo và so sánh.
+- **Vì sao không dùng CNN của bản cũ trên web:** CNN 10 lớp ép mọi âm lạ vào một trong 10 nhãn (ví dụ tiếng sủa trên nền máy lạnh bị nhận thành máy lạnh), và Vercel không chạy được PyTorch. Mã Flask + CNN vẫn được giữ trong `legacy/` để báo cáo và so sánh (xem [Đánh giá mô hình](#đánh-giá-mô-hình)).
 
 ### Công nghệ sử dụng
 
@@ -80,6 +90,7 @@ flowchart LR
 | Backend (có sẵn) | Supabase: Auth (Google, mã email), Postgres, Row Level Security, Storage |
 | Serverless | Vercel Function `api/fetch-audio.js` để tải hộ âm thanh từ link |
 | Học máy (offline) | Python, TensorFlow, librosa; Google Colab (`training/train_colab.ipynb`) |
+| Mô hình bản cũ | PyTorch, Flask (CNN 2D trên Log-Mel, trong `legacy/`) |
 | Dữ liệu | UrbanSound8K, ESC-50, Google AudioSet, Freesound, mẫu nhóm tự thu |
 | Kiểm thử | Node test runner (`node --test`) |
 | Triển khai | GitHub, Vercel (tự deploy khi push lên `main`) |
@@ -128,6 +139,15 @@ npm test                     # chạy 18 bài kiểm thử trong tests/
 
 Điền `SUPABASE_URL` và `SUPABASE_ANON_KEY` (khóa publishable/anon, là khóa công khai) vào `assets/js/config.js`, rồi chạy `supabase/schema.sql` và `supabase/samples.sql` trong Supabase → SQL Editor. Hướng dẫn đầy đủ ở [Thông tin bổ sung](#đăng-nhập-thật-supabase). **Không bao giờ dán khóa `service_role` vào code.**
 
+### Lỗi thường gặp
+
+| Hiện tượng | Cách sửa |
+| --- | --- |
+| Micro không chạy | Mở bằng `localhost` hoặc HTTPS, không mở file trực tiếp; bấm ổ khóa cạnh thanh địa chỉ → Micro → Cho phép |
+| Báo "Không tải được thư viện AI" | Kiểm tra mạng; mạng trường hoặc công ty có thể chặn, thử mạng khác |
+| Cổng 3000 đang được dùng | Đổi cổng, ví dụ `python -m http.server 8080` rồi mở `http://localhost:8080` |
+| Trang không đổi sau khi sửa code | Nhấn `Ctrl + F5` để tải lại hoàn toàn |
+
 ## Task 1 — Project Planning & Teamwork
 
 ### (a) Phân công vai trò
@@ -138,6 +158,8 @@ npm test                     # chạy 18 bài kiểm thử trong tests/
 | Đinh Phùng Duy Huy | Hỗ trợ tìm hiểu dữ liệu, EDA và đối chiếu số liệu trong báo cáo |
 | Tôn Thất Dương Đạt | Hỗ trợ tìm tài liệu tham khảo, chạy thử thí nghiệm và kiểm thử web |
 | Lê Văn Tiến Hùng | Hỗ trợ làm slide và thuyết trình |
+
+Phân công theo từng tuần ghi ở mục "Who" của mỗi [báo cáo tuần](#self-reports).
 
 ### (b) Thiết kế giao diện
 
@@ -155,15 +177,15 @@ Màu sắc, bo góc, khoảng cách và chuyển động là biến CSS trong `a
 
 ### (c) Project Plan
 
-Dự án chia thành 5 tuần; sản phẩm tuần trước là đầu vào của tuần sau. Chi tiết từng tuần ở [`docs/weekly/`](docs/weekly/).
+Dự án chia thành 5 tuần; sản phẩm tuần trước là đầu vào của tuần sau. Mỗi tuần có một báo cáo riêng.
 
-| Tuần | Nội dung | Kết quả bàn giao |
-| --- | --- | --- |
-| 1 | Khởi động dự án | Đề tài, SWOT, kế hoạch giao tiếp, WBS, lộ trình, khung GitHub |
-| 2 | Bài toán và dữ liệu | Phát biểu bài toán, 3 câu hỏi nghiên cứu, khám phá UrbanSound8K |
-| 3 | Dữ liệu và baseline | Pipeline tiền xử lý, ảnh Log-Mel, CNN 2D baseline |
-| 4 | Phát triển và đánh giá | Huấn luyện, 10-fold, so sánh mô hình, phân tích lỗi, web Flask |
-| 5 | Tích hợp và bàn giao | Chuyển sang YAMNet trong trình duyệt, 10 trang web, Supabase, Vercel, báo cáo cuối |
+| Tuần | Nội dung | Kết quả bàn giao | Báo cáo |
+| --- | --- | --- | --- |
+| 1 | Khởi động dự án | Đề tài, SWOT, kế hoạch giao tiếp, WBS, lộ trình, khung GitHub | [PDF](docs/weekly/BaoCao_Tuan1_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan1_UrbanSound.docx) |
+| 2 | Bài toán và hiểu dữ liệu | Phát biểu bài toán, 3 câu hỏi nghiên cứu, khám phá UrbanSound8K | [PDF](docs/weekly/BaoCao_Tuan2_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan2_UrbanSound.docx) |
+| 3 | Chuẩn bị dữ liệu và mô hình cơ sở | Pipeline tiền xử lý, ảnh Log-Mel, CNN 2D baseline | [PDF](docs/weekly/BaoCao_Tuan3_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan3_UrbanSound.docx) |
+| 4 | Phát triển và đánh giá mô hình | Huấn luyện, 10-fold, so sánh mô hình, phân tích lỗi, web Flask | [PDF](docs/weekly/BaoCao_Tuan4_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan4_UrbanSound.docx) |
+| 5 | Tích hợp cuối và bàn giao | Chuyển sang YAMNet trong trình duyệt, 10 trang web, Supabase, Vercel, báo cáo cuối | [PDF](docs/weekly/BaoCao_Tuan5_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan5_UrbanSound.docx) |
 
 ### (d) GitHub Repository
 
@@ -177,7 +199,10 @@ supabase/     SQL tạo bảng lịch sử và kho mẫu, có Row Level Security
 tests/        kiểm thử tự động (Node)
 tools/        tải mô hình YAMNet về tự host
 legacy/       bản cũ: Flask + CNN UrbanSound8K
-docs/         báo cáo tuần, báo cáo cuối kỳ, ảnh chụp màn hình
+docs/
+├── final-report/   báo cáo cuối kỳ (PDF, Word)
+├── weekly/         báo cáo tuần 1–5 (PDF, Word)
+└── screenshots/    ảnh chụp màn hình
 .github/      mẫu pull request
 ```
 
@@ -220,10 +245,12 @@ Quy ước chi tiết: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 | **Sức khỏe** | **Dạy AI (Âm thanh của tôi)** |
 | ![Sức khỏe](docs/screenshots/suc-khoe.jpg) | ![Dạy AI](docs/screenshots/du-lieu.jpg) |
 | Chọn một mức ồn để xem nghe tối đa bao lâu mỗi ngày. | Thu vài mẫu, đặt tên, AI nhận ra ở lần sau. |
-| **Hướng dẫn** | **Lịch sử & yêu thích** |
+| **Hướng dẫn** | **Lịch sử và yêu thích** |
 | ![Hướng dẫn](docs/screenshots/huong-dan.jpg) | ![Lịch sử](docs/screenshots/lich-su.jpg) |
-| **Đăng nhập** | **Giới thiệu & mô hình** |
+| Các bước dùng, ý nghĩa màu sắc và cách xử lý lỗi micro. | Tìm, lọc, nghe lại, đánh dấu yêu thích và xuất CSV. |
+| **Đăng nhập** | **Giới thiệu và mô hình** |
 | ![Đăng nhập](docs/screenshots/dang-nhap.jpg) | ![Giới thiệu](docs/screenshots/gioi-thieu.jpg) |
+| Google hoặc mã 6 số qua email, bố cục chia đôi. | Kỹ thuật, so sánh với CNN bản cũ, quyền riêng tư. |
 
 *Ảnh chụp ở chế độ `?demo`, màn hình 1440 × 900.*
 
@@ -290,7 +317,7 @@ Các thay đổi đã làm để web nhẹ và nhanh:
 - **Thư viện Supabase tải theo nhu cầu**, trang nào không cần đăng nhập thì không tải.
 - **Chỉ phân tích 5 phút đầu** của file dài, có bước cắt khung lặng để bớt việc cho mô hình.
 
-**Điểm Lighthouse:** đo bằng Chrome DevTools → Lighthouse trên https://urban-sound-ai.vercel.app, rồi ghi kết quả vào bảng dưới.
+**Điểm Lighthouse** (chưa đo): mở https://urban-sound-ai.vercel.app trong Chrome → DevTools → Lighthouse, chạy cho Desktop và Mobile rồi điền vào bảng.
 
 | Hạng mục | Máy tính | Điện thoại |
 | --- | --- | --- |
@@ -308,7 +335,7 @@ Web không dùng công cụ theo dõi bên thứ ba (Google Analytics, Sentry…
 - **Thông báo lỗi rõ nguyên nhân:** micro bị chặn, camera không mở được, mất mạng khi tải mô hình, file không đọc được; mỗi lỗi kèm cách sửa.
 - **Nhật ký phiên** ở trang Trực tiếp và lịch sử nhận diện cho biết người dùng hay gặp âm thanh gì; dữ liệu này nằm trên máy người dùng.
 
-### Kết quả kiểm thử
+### (c) Kết quả kiểm thử
 
 Chạy ngày 25/11/2026 bằng `npm test` (Node 22):
 
@@ -325,7 +352,7 @@ Chạy ngày 25/11/2026 bằng `npm test` (Node 22):
 
 ### CNN bản cũ trên UrbanSound8K
 
-CNN 2D (405.898 tham số) trên ảnh phổ Log-Mel 128 × 173, chia theo fold gốc: train Fold 1–8, validation Fold 9, test Fold 10.
+CNN 2D (405.898 tham số) trên ảnh phổ Log-Mel 128 × 173, chia theo fold gốc: train Fold 1–8, validation Fold 9, test Fold 10. Quá trình xây dựng mô hình này được trình bày ở [báo cáo Tuần 3](docs/weekly/BaoCao_Tuan3_UrbanSound.pdf) và [Tuần 4](docs/weekly/BaoCao_Tuan4_UrbanSound.pdf).
 
 | Chỉ số (Test Fold 10, 837 đoạn) | Kết quả |
 | --- | --- |
@@ -338,12 +365,12 @@ CNN 2D (405.898 tham số) trên ảnh phổ Log-Mel 128 × 173, chia theo fold 
 
 ### Vì sao chuyển sang YAMNet
 
-Đánh giá chéo trên ESC-50 cho thấy CNN 10 lớp không dùng thật được:
+Đánh giá chéo trên ESC-50 cho thấy CNN 10 lớp chưa dùng thật được:
 
 - **Với âm thanh cùng loại**, độ chính xác trên 4 lớp tương ứng của ESC-50 chỉ còn 75,0%. Riêng còi xe chỉ đạt 52,5%.
 - **Với âm thanh ngoài 10 lớp** (mưa, gió, bàn phím… 560 đoạn), mô hình vẫn gán nhãn khá tự tin, độ tin cậy trung bình 0,66. Ở ngưỡng 0,7, vẫn còn 42,7% số đoạn bị gán nhầm một nhãn đô thị.
 
-YAMNet đã biết 521 lớp, trong đó có tiếng người nói và tiếng nền. Vì vậy âm thanh lạ được gọi đúng nhóm của nó, thay vì bị ép vào một nhãn đô thị.
+YAMNet đã biết 521 lớp, trong đó có tiếng người nói và tiếng nền. Vì vậy âm thanh lạ được gọi đúng nhóm của nó, thay vì bị ép vào một nhãn đô thị. Phân tích đầy đủ ở [báo cáo cuối kỳ](docs/final-report/UrbanSound_Final_Report.pdf).
 
 ### Lớp tự huấn luyện thêm
 
@@ -352,25 +379,26 @@ Lớp phân loại nhỏ (2 tầng) huấn luyện trên embedding 1024 chiều 
 ## Deliverables Checklist
 
 - [x] Mã nguồn trên GitHub (repo này), kèm README
-- [x] Báo cáo cuối kỳ theo mẫu IEEE: [`docs/final-report/`](docs/final-report/)
-- [x] Báo cáo từng tuần (tuần 1–5): [`docs/weekly/`](docs/weekly/)
+- [x] Báo cáo cuối kỳ theo mẫu IEEE: [PDF](docs/final-report/UrbanSound_Final_Report.pdf) · [Word](docs/final-report/UrbanSound_Final_Report.docx)
+- [x] Báo cáo từng tuần (tuần 1–5): xem [Self-Reports](#self-reports)
 - [x] Bản chạy trên Vercel: https://urban-sound-ai.vercel.app
 - [x] Slide thuyết trình từng tuần (nộp trên Drive)
-- [x] Video demo
+- [x] Video demo (nộp trên Drive)
 - [ ] Điểm Lighthouse ở [Task 4 (a)](#a-hiệu-năng)
 - [ ] Bản tự nhìn lại cá nhân viết tay (4 thành viên)
 
 ## Self-Reports
 
-| Tuần | Nội dung | File |
-| --- | --- | --- |
-| 1 | Tổng quan dự án, giải pháp AI, dữ liệu, SWOT, vai trò, kế hoạch giao tiếp, WBS, GitHub | [BaoCao_Tuan1](docs/weekly/BaoCao_Tuan1_UrbanSound.docx) |
-| 2 | Phát biểu bài toán, 3 câu hỏi nghiên cứu, khám phá và chất lượng dữ liệu | [BaoCao_Tuan2](docs/weekly/BaoCao_Tuan2_UrbanSound.docx) |
-| 3 | Pipeline tiền xử lý, chia dữ liệu, Log-Mel, lý do chọn CNN, baseline | [BaoCao_Tuan3](docs/weekly/BaoCao_Tuan3_UrbanSound.docx) |
-| 4 | Kiến trúc, huấn luyện, chỉ số, so sánh mô hình, phân tích lỗi | [BaoCao_Tuan4](docs/weekly/BaoCao_Tuan4_UrbanSound.docx) |
-| 5 | Tích hợp cuối, sản phẩm, giới hạn, hướng phát triển, bàn giao | [BaoCao_Tuan5](docs/weekly/BaoCao_Tuan5_UrbanSound.docx) |
+Mỗi báo cáo tuần mở đầu bằng bảng **Tóm mục báo cáo tuần** gồm 8 mục: What, When, Why, Who, How much, Top risks, Major changes, Key issues; sau đó là phần chuyên đề của tuần. Bấm **PDF** để xem ngay trên GitHub, **Word** để tải bản chỉnh sửa được.
 
-Mỗi báo cáo mở đầu bằng 8 mục: What, When, Why, Who, How much, rủi ro, thay đổi, vấn đề.
+| Tuần | Tiêu đề | Nội dung chính | Báo cáo |
+| --- | --- | --- | --- |
+| 1 | Khởi động dự án | Tổng quan dự án, giải pháp AI, dữ liệu, SWOT, vai trò, kế hoạch giao tiếp, WBS, lộ trình, GitHub | [PDF](docs/weekly/BaoCao_Tuan1_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan1_UrbanSound.docx) |
+| 2 | Bài toán và hiểu dữ liệu | Phát biểu bài toán, 3 câu hỏi nghiên cứu, khám phá và chất lượng dữ liệu, rà soát baseline | [PDF](docs/weekly/BaoCao_Tuan2_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan2_UrbanSound.docx) |
+| 3 | Chuẩn bị dữ liệu và mô hình cơ sở | Pipeline tiền xử lý, chia dữ liệu, Log-Mel, lý do chọn CNN, kết quả baseline | [PDF](docs/weekly/BaoCao_Tuan3_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan3_UrbanSound.docx) |
+| 4 | Phát triển và đánh giá mô hình | Kiến trúc, huấn luyện, chỉ số, so sánh mô hình, phân tích lỗi, kế hoạch cải tiến | [PDF](docs/weekly/BaoCao_Tuan4_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan4_UrbanSound.docx) |
+| 5 | Tích hợp cuối và bàn giao | Kết quả, sản phẩm (Flask và bản web công khai), giới hạn, hướng phát triển, bàn giao | [PDF](docs/weekly/BaoCao_Tuan5_UrbanSound.pdf) · [Word](docs/weekly/BaoCao_Tuan5_UrbanSound.docx) |
+| Cuối kỳ | Báo cáo theo mẫu IEEE | Toàn bộ đồ án: dữ liệu, phương pháp, kết quả, đánh giá chéo ESC-50, tích hợp, hạn chế | [PDF](docs/final-report/UrbanSound_Final_Report.pdf) · [Word](docs/final-report/UrbanSound_Final_Report.docx) |
 
 ## Thông tin bổ sung
 
