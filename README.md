@@ -317,15 +317,6 @@ Các thay đổi đã làm để web nhẹ và nhanh:
 - **Thư viện Supabase tải theo nhu cầu**, trang nào không cần đăng nhập thì không tải.
 - **Chỉ phân tích 5 phút đầu** của file dài, có bước cắt khung lặng để bớt việc cho mô hình.
 
-**Điểm Lighthouse** (chưa đo): mở https://urban-sound-ai.vercel.app trong Chrome → DevTools → Lighthouse, chạy cho Desktop và Mobile rồi điền vào bảng.
-
-| Hạng mục | Máy tính | Điện thoại |
-| --- | --- | --- |
-| Performance | — | — |
-| Accessibility | — | — |
-| Best Practices | — | — |
-| SEO | — | — |
-
 ### (b) Bảo mật, theo dõi lỗi và hành vi người dùng
 
 Web không dùng công cụ theo dõi bên thứ ba (Google Analytics, Sentry…). Đây là lựa chọn có chủ đích: web xử lý micro và camera, nên nhóm giữ nguyên tắc không gửi âm thanh của người dùng ra ngoài. Thay vào đó:
